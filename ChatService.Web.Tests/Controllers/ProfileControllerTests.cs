@@ -1,0 +1,88 @@
+using System.Net;
+using System.Net.Http.Json;
+using ChatService.Web.Dtos;
+using ChatService.Web.Storage;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using Newtonsoft.Json;
+
+namespace ChatService.Web.Tests.Controllers;
+
+public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly Mock<IProfileStore> _profileStoreMock = new();
+    private readonly HttpClient _httpClient;
+    private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
+    
+    public ProfileControllerTests(WebApplicationFactory<Program> factory)
+    {
+        _httpClient = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services => { services.AddSingleton(_profileStoreMock.Object); });
+        }).CreateClient();
+    }
+
+    [Fact]
+    public async Task GetProfile_Success()
+    {
+        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+            .ReturnsAsync(_profile);
+
+        var response = await _httpClient.GetAsync($"/Profile/{_profile.username}");
+        
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        
+        var json = await response.Content.ReadAsStringAsync();
+        var receivedProfile = JsonConvert.DeserializeObject<Profile>(json);
+        Assert.Equal(_profile, receivedProfile);
+    }
+    
+    [Fact]
+    public async Task GetProfile_ProfileNotFound()
+    {
+        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+            .ReturnsAsync((Profile?) null);
+
+        var response = await _httpClient.GetAsync($"/Profile/{_profile.username}");
+        
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Equal($"A profile with the username {_profile.username} was not found.", json);
+    }
+
+    [Fact]
+    public async Task PostProfile_Success()
+    {
+        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+            .ReturnsAsync((Profile?) null);
+
+        var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
+        
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        
+        var json = await response.Content.ReadAsStringAsync();
+        var receivedProfile = JsonConvert.DeserializeObject<Profile>(json);
+        Assert.Equal(_profile, receivedProfile);
+        
+        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Once);
+    }
+    
+    [Fact]
+    public async Task PostProfile_UsernameTaken()
+    {
+        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+            .ReturnsAsync(_profile);
+
+        var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
+        
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Equal($"A user with the username {_profile.username} already exist.", json);
+        
+        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
+    }
+}
