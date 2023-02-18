@@ -85,4 +85,27 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
         
         _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
     }
+
+    [Theory]
+    [InlineData(null, "Foo", "Bar", "123")]
+    [InlineData("", "Foo", "Bar", "123")]
+    [InlineData(" ", "Foo", "Bar", "123")]
+    [InlineData("foobar", null, "Bar", "123")]
+    [InlineData("foobar", "", "Bar", "123")]
+    [InlineData("foobar", " ", "Bar", "123")]
+    [InlineData("foobar", "Foo", null, "123")]
+    [InlineData("foobar", "Foo", "", "123")]
+    [InlineData("foobar", "Foo", " ", "123")]
+    [InlineData("foobar", "Foo", "Bar", null)]
+    [InlineData("foobar", "Foo", "Bar", "")]
+    [InlineData("foobar", "Foo", "Bar", " ")]
+    public async Task PostProfile_InvalidArguments(string username, string firstName, string lastName, string profilePictureId)
+    {
+        Profile profile = new(username, firstName, lastName, profilePictureId);
+
+        var response = await _httpClient.PutAsJsonAsync("/Profile", profile);
+        
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
+    }
 }

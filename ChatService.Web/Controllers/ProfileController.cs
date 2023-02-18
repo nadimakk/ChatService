@@ -19,6 +19,7 @@ public class ProfileController : ControllerBase
     [HttpGet("{username}")]
     public async Task<ActionResult<Profile>> GetProfile(string username)
     {
+        
         var profile = await _profileStore.GetProfile(username);
         if (profile == null)
         {

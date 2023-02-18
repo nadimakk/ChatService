@@ -1,3 +1,4 @@
+using Azure.Storage.Blobs;
 using ChatService.Web.Configuration;
 using ChatService.Web.Storage;
 using Microsoft.Azure.Cosmos;
@@ -7,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add Configuration
 builder.Services.Configure<CosmosSettings>(builder.Configuration.GetSection("Cosmos"));
+builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("Blob"));
 
 // Add services to the container.
 builder.Services.AddSingleton<IProfileStore, CosmosProfileStore>();
@@ -15,6 +17,12 @@ builder.Services.AddSingleton(sp =>
     var cosmosOptions = sp.GetRequiredService<IOptions<CosmosSettings>>();
     return new CosmosClient(cosmosOptions.Value.ConnectionString);
 });
+builder.Services.AddSingleton(sp =>
+    {
+        var blobOptions = sp.GetRequiredService<IOptions<BlobSettings>>();
+        return new BlobContainerClient(blobOptions.Value.container);
+    }
+);
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

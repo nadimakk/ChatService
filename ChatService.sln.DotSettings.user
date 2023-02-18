@@ -6,5 +6,6 @@
     &lt;TestId&gt;xUnit::270C3052-C9D2-4EF9-9683-D5E4A4E69733::net6.0::ChatService.Web.Tests.Controllers.ProfileControllerTests.PostProfile_Success&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::270C3052-C9D2-4EF9-9683-D5E4A4E69733::net6.0::ChatService.Web.Tests.Controllers.ProfileControllerTests.PostProfile_UsernameTaken&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::A7808CB8-B561-4939-9B4E-8AC0FD786DC3::net6.0::ChatService.Web.IntegrationTests.CosmosProfileStoreTest&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::270C3052-C9D2-4EF9-9683-D5E4A4E69733::net6.0::ChatService.Web.Tests.Controllers.ProfileControllerTests&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
