@@ -1,10 +1,10 @@
 using ChatService.Web.Dtos;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ChatService.Web.Storage;
 
 public interface IImageStore
 {
-    Task UploadImage(UploadImageRequest request);
-    Task<MemoryStream> DownloadImage(string id);
- 
+    Task<string> UploadImage(IFormFile file);
+    Task<FileContentResult?> DownloadImage(string id);
 }

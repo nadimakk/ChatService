@@ -1,40 +1,47 @@
-using ChatService.Web.Dtos;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ChatService.Web.Storage;
 
 public class BlobImageStore : IImageStore
 {
-    public Task UploadImage(UploadImageRequest request)
+    private readonly BlobServiceClient _blobServiceClient;
+
+    public BlobImageStore(BlobServiceClient blobServiceClient)
     {
-        throw new NotImplementedException();
+        _blobServiceClient = blobServiceClient;
     }
-    
-    public void UploadImageToBlobStorage(string containerName, string blobName)
+
+    private BlobContainerClient BlobContainerClient => _blobServiceClient.GetBlobContainerClient("images");
+
+    public async Task<string> UploadImage(IFormFile file)
     {
-        // Parse the connection string and create a CloudStorageAccount object
-        CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
-
-        // Create the blob client object
-        CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-
-        // Retrieve a reference to a container
-        CloudBlobContainer container = blobClient.GetContainerReference(containerName);
-
-        // Create the container if it does not exist
-        container.CreateIfNotExists();
-
-        // Retrieve a reference to a blob
-        CloudBlockBlob blockBlob = container.GetBlockBlobReference(blobName);
-
-        // Open the file and upload its data to the blob
-        using (var fileStream = File.OpenRead(imagePath))
+        string imageId = Guid.NewGuid().ToString();
+        BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);
+        BlobHttpHeaders headers = new BlobHttpHeaders
         {
-            blockBlob.UploadFromStream(fileStream);
-        }
+            ContentType = file.ContentType
+        };
+        await blobClient.UploadAsync(file.OpenReadStream(), headers);
+        return imageId;
     }
 
-    public Task<MemoryStream> DownloadImage(string id)
+    public async Task<FileContentResult?> DownloadImage(string id)
     {
-        throw new NotImplementedException();
+        BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
+        bool blobExists = await blobClient.ExistsAsync();
+        if (!blobExists)
+        {
+            return null;
+        }
+        BlobProperties properties = await blobClient.GetPropertiesAsync();
+        string contentType = properties.ContentType;
+        
+        MemoryStream stream = new MemoryStream();
+        await blobClient.DownloadToAsync(stream);
+        byte[] blobContent = stream.ToArray();
+        
+        return new FileContentResult(blobContent, contentType);
     }
 }
