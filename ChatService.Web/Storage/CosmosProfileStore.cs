@@ -74,7 +74,6 @@ public class CosmosProfileStore : IProfileStore
         }
     }
 
-
     private static ProfileEntity ToEntity(Profile profile)
     {
         return new ProfileEntity(

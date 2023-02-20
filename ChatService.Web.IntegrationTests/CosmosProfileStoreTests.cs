@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ChatService.Web.IntegrationTests;
 
-
 public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly IProfileStore _store;

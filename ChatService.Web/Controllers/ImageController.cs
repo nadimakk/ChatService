@@ -3,6 +3,7 @@ using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ChatService.Web.Controllers;
+
 [ApiController]
 [Route("[controller]")]
 public class ImageController : ControllerBase
@@ -17,7 +18,6 @@ public class ImageController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request)
     {
-        
         string contentType = request.File.ContentType.ToLower();
         if (contentType != "image/jpg" &&
             contentType != "image/jpeg" &&
@@ -27,10 +27,10 @@ public class ImageController : ControllerBase
         }
         
         string imageId = await _imageStore.UploadImage(request.File);
-        return Ok(new UploadImageResponse(imageId));
+        return CreatedAtAction(nameof(DownloadImage), new { id = imageId }, new UploadImageResponse(imageId));
     }
     
-    [HttpGet("{id}")]
+    [HttpGet("{id}")] 
     public async  Task<IActionResult> DownloadImage(string id)
     {
         FileContentResult? imageResult = await _imageStore.DownloadImage(id);

@@ -103,7 +103,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         Profile profile = new(username, firstName, lastName, profilePictureId);
 
-        var response = await _httpClient.PutAsJsonAsync("/Profile", profile);
+        var response = await _httpClient.PostAsJsonAsync("/Profile", profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);

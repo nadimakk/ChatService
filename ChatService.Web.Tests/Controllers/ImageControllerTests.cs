@@ -1,7 +1,10 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using ChatService.Web.Dtos;
 using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,9 +16,9 @@ namespace ChatService.Web.Tests.Controllers;
 public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly Mock<IImageStore> _imageStoreMock = new();
-    private readonly Mock<IFormFile> _formFileMock = new();
     private readonly HttpClient _httpClient;
-
+    private readonly MultipartFormDataContent _content = new();
+    
     public ImageControllerTests(WebApplicationFactory<Program> factory)
     {
         _httpClient = factory.WithWebHostBuilder(builder =>
@@ -29,25 +32,79 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         var imageId = Guid.NewGuid().ToString();
         var uploadImageResponse = new UploadImageResponse(imageId);
-
-        _formFileMock.Setup(m => m.ContentType)
-            .Returns("image/jpg");
-        _formFileMock.Setup(m => m.OpenReadStream())
-            .Returns(new MemoryStream());
-        _imageStoreMock.Setup(m => m.UploadImage(_formFileMock.Object))
+        
+        _imageStoreMock.Setup(m => m.UploadImage(It.IsAny<IFormFile>()))
             .ReturnsAsync(imageId);
+        
+        var fileContent = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes("This is a mock image file content")));
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        _content.Add(fileContent,"File", "image.jpeg");
+        
+        var response = await _httpClient.PostAsync("/Image", _content);
+        
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        
+        Assert.Equal($"http://localhost/Image/{imageId}", response.Headers.GetValues("Location").First());
 
-        var content = new MultipartFormDataContent();
-        var fileContent = new StreamContent(_formFileMock.Object.OpenReadStream());
-        content.Add(fileContent,"File");
-        
-        var response = await _httpClient.PostAsync("/Image", content);
-        
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
         var json = await response.Content.ReadAsStringAsync();
         var receivedUploadImageResponse = JsonConvert.DeserializeObject<UploadImageResponse>(json);
         Assert.Equal(uploadImageResponse, receivedUploadImageResponse);
     }
     
+    [Fact]
+    public async Task UploadImage_MissingFile()
+    {
+        var response = await _httpClient.PostAsync("/Image", _content);
+        
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        
+        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<IFormFile>()), Times.Never);
+    }
+    
+    [Fact]
+    public async Task UploadImage_InvalidFile()
+    {
+        var fileContent = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes("This is a mock text file content")));
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+        _content.Add(fileContent,"File", "file.txt");
+        
+        var response = await _httpClient.PostAsync("/Image", _content);
+        
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Equal("Invalid file, must be an image.", json);
+        
+        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<IFormFile>()), Times.Never);
+    }
+    
+    [Fact]
+    public async Task DownloadImage_Success()
+    {
+        var imageId = Guid.NewGuid().ToString();
+        var fileContentResult = new FileContentResult(new byte[1024], "image/jpg");
+
+        _imageStoreMock.Setup(m => m.DownloadImage(imageId))
+            .ReturnsAsync(fileContentResult);
+
+        var response = await _httpClient.GetAsync($"/Image/{imageId}");
+        
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        
+        var content = await response.Content.ReadAsByteArrayAsync();
+        var contentType = response.Content.Headers.ContentType.ToString();
+        
+        Assert.Equal(fileContentResult.FileContents, content);
+        Assert.Equal(fileContentResult.ContentType, contentType);
+    }
+   
+    [Fact]
+    public async Task DownloadImage_NotFound()
+    {
+        var imageId = Guid.NewGuid().ToString();
+        
+        var response = await _httpClient.GetAsync($"/Image/{imageId}");
+        
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
