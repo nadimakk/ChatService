@@ -8,10 +8,12 @@ namespace ChatService.Web.Storage;
 public class CosmosProfileStore : IProfileStore
 {
     private readonly CosmosClient _cosmosClient;
-
-    public CosmosProfileStore(CosmosClient cosmosClient)
+    private readonly IImageStore _imageStore;
+    
+    public CosmosProfileStore(CosmosClient cosmosClient, IImageStore imageStore)
     {
         _cosmosClient = cosmosClient;
+        _imageStore = imageStore;
     }
 
     private Container Container => _cosmosClient.GetDatabase("chatService").GetContainer("profiles");
@@ -28,7 +30,14 @@ public class CosmosProfileStore : IProfileStore
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
 
+        bool imageExists = await _imageStore.ImageExists(profile.profilePictureId);
+        if (!imageExists)
+        {
+            throw new ArgumentException("The profile picture of the profile does not exist.");
+        }
+        
         await Container.UpsertItemAsync(ToEntity(profile));
+
     }
     
     public async Task<Profile?> GetProfile(string username)
@@ -57,21 +66,18 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task DeleteProfile(string username)
     {
-        try
+        Profile? profile = await GetProfile(username);
+
+        if (profile == null)
         {
-            await Container.DeleteItemAsync<Profile>(
-                id: username,
-                partitionKey: new PartitionKey(username)
-            );
+            return;
         }
-        catch (CosmosException e)
-        {
-            if (e.StatusCode == HttpStatusCode.NotFound)
-            {
-                return;
-            }
-            throw;
-        }
+
+        await _imageStore.DeleteImage(profile.profilePictureId);
+        
+        await Container.DeleteItemAsync<Profile>(
+            id: username,
+            partitionKey: new PartitionKey(username));
     }
 
     private static ProfileEntity ToEntity(Profile profile)

@@ -17,6 +17,15 @@ public class BlobImageStore : IImageStore
 
     public async Task<string> UploadImage(ImageDto image)
     {
+        
+        string contentType = image.ContentType.ToLower();
+        if (contentType != "image/jpg" &&
+            contentType != "image/jpeg" &&
+            contentType != "image/png")
+        {
+            throw new ArgumentException("File type is not an image.");
+        }
+        
         string imageId = Guid.NewGuid().ToString();
         BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);
         BlobHttpHeaders headers = new BlobHttpHeaders
@@ -45,9 +54,15 @@ public class BlobImageStore : IImageStore
         return new ImageDto(contentType, content);
     }
 
-    public async Task DeleteImage(string id)
+    public async Task<bool> DeleteImage(string id)
     {
         BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
-        await blobClient.DeleteIfExistsAsync();
+        return await blobClient.DeleteIfExistsAsync();
+    }
+
+    public async Task<bool> ImageExists(string id)
+    {
+        BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
+        return await blobClient.ExistsAsync();
     }
 }

@@ -13,6 +13,7 @@ namespace ChatService.Web.Tests.Controllers;
 public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly Mock<IProfileStore> _profileStoreMock = new();
+    private readonly Mock<IImageStore> _imageStoreMock = new();
     private readonly HttpClient _httpClient;
     private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
     
@@ -20,7 +21,11 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         _httpClient = factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureTestServices(services => { services.AddSingleton(_profileStoreMock.Object); });
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddSingleton(_profileStoreMock.Object);
+                services.AddSingleton(_imageStoreMock.Object);
+            });
         }).CreateClient();
     }
 
@@ -58,6 +63,8 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
             .ReturnsAsync((Profile?) null);
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+            .ReturnsAsync(true);
 
         var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
         
@@ -106,6 +113,21 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
         var response = await _httpClient.PostAsJsonAsync("/Profile", profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProfileProfile_ProfilePictureNotFound()
+    {
+        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+            .ReturnsAsync((Profile?) null);
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+            .ReturnsAsync(false);
+
+        var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
+        
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        
         _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
     }
 }

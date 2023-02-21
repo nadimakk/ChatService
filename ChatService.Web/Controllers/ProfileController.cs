@@ -9,10 +9,12 @@ namespace ChatService.Web.Controllers;
 public class ProfileController : ControllerBase
 {
     private readonly IProfileStore _profileStore;
+    private readonly IImageStore _imageStore;
 
-    public ProfileController(IProfileStore profileStore)
+    public ProfileController(IProfileStore profileStore, IImageStore imageStore)
     {
         _profileStore = profileStore;
+        _imageStore = imageStore;
     }
 
     [HttpGet("{username}")]
@@ -36,6 +38,12 @@ public class ProfileController : ControllerBase
             return Conflict($"A user with the username {profile.username} already exist.");
         }
 
+        bool imageExists = await _imageStore.ImageExists(profile.profilePictureId);
+        if (!imageExists)
+        {
+            return BadRequest("The profile picture of the profile does not exist.");
+        }
+        
         await _profileStore.AddProfile(profile);
         return CreatedAtAction(nameof(GetProfile), new { username = profile.username }, profile);
     }

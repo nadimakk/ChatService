@@ -6,5 +6,6 @@ public interface IImageStore
 {
     Task<string> UploadImage(ImageDto image);
     Task<ImageDto?> DownloadImage(string id);
-    Task DeleteImage(string id);
+    Task<bool> DeleteImage(string id);
+    Task<bool> ImageExists(string id);
 }

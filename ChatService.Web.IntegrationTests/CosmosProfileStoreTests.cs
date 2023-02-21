@@ -2,18 +2,20 @@ using ChatService.Web.Dtos;
 using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace ChatService.Web.IntegrationTests;
 
 public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly IProfileStore _store;
+    private readonly Mock<IImageStore> _imageStoreMock = new();
 
     private readonly Profile _profile = new(
         username: Guid.NewGuid().ToString(),
         firstName: "Foo",
         lastName: "Bar",
-        profilePictureId: "123"
+        profilePictureId: "dummy_id"
     );
     
     public Task InitializeAsync()
@@ -29,25 +31,29 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
     {
         _store = factory.Services.GetRequiredService<IProfileStore>();
+        //TODO:inject mock
     }
     
     [Fact]
     public async Task AddNewProfile_Success()
     {
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+            .ReturnsAsync(true);
+        
         await _store.AddProfile(_profile);
         Assert.Equal(_profile, await _store.GetProfile(_profile.username));
     }
 
     [Theory]
-    [InlineData(null, "Foo", "Bar", "123")]
-    [InlineData("", "Foo", "Bar", "123")]
-    [InlineData(" ", "Foo", "Bar", "123")]
-    [InlineData("foobar", null, "Bar", "123")]
-    [InlineData("foobar", "", "Bar", "123")]
-    [InlineData("foobar", " ", "Bar", "123")]
-    [InlineData("foobar", "Foo", null, "123")]
-    [InlineData("foobar", "Foo", "", "123")]
-    [InlineData("foobar", "Foo", " ", "123")]
+    [InlineData(null, "Foo", "Bar", "dummy_id")]
+    [InlineData("", "Foo", "Bar", "dummy_id")]
+    [InlineData(" ", "Foo", "Bar", "dummy_id")]
+    [InlineData("foobar", null, "Bar", "dummy_id")]
+    [InlineData("foobar", "", "Bar", "dummy_id")]
+    [InlineData("foobar", " ", "Bar", "dummy_id")]
+    [InlineData("foobar", "Foo", null, "dummy_id")]
+    [InlineData("foobar", "Foo", "", "dummy_id")]
+    [InlineData("foobar", "Foo", " ", "dummy_id")]
     [InlineData("foobar", "Foo", "Bar", null)]
     [InlineData("foobar", "Foo", "Bar","")]
     [InlineData("foobar", "Foo", "Bar"," ")]
@@ -62,6 +68,15 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     {
         await Assert.ThrowsAsync<ArgumentException>( async () =>  await _store.AddProfile(null));
     }
+
+    [Fact]
+    public async Task AddNewProfile_ProfilePictureNotFound()
+    {
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+            .ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<ArgumentException>( async () =>  await _store.AddProfile(_profile));
+    }
     
     [Fact]
     public async Task GetNonExistingProfile()
@@ -72,6 +87,9 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task DeleteProfile()
     {
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+            .ReturnsAsync(true);
+        
         await _store.AddProfile(_profile);
         Assert.Equal(_profile, await _store.GetProfile(_profile.username));
         await _store.DeleteProfile(_profile.username);
