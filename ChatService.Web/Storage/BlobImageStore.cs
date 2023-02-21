@@ -1,6 +1,6 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Microsoft.AspNetCore.Mvc;
+using ChatService.Web.Dtos;
 
 namespace ChatService.Web.Storage;
 
@@ -15,19 +15,20 @@ public class BlobImageStore : IImageStore
 
     private BlobContainerClient BlobContainerClient => _blobServiceClient.GetBlobContainerClient("images");
 
-    public async Task<string> UploadImage(IFormFile file)
+    public async Task<string> UploadImage(ImageDto image)
     {
         string imageId = Guid.NewGuid().ToString();
         BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);
         BlobHttpHeaders headers = new BlobHttpHeaders
         {
-            ContentType = file.ContentType
+            ContentType = image.ContentType
         };
-        await blobClient.UploadAsync(file.OpenReadStream(), headers);
+        image.Content.Position = 0;
+        await blobClient.UploadAsync(image.Content, headers);
         return imageId;
     }
 
-    public async Task<FileContentResult?> DownloadImage(string id)
+    public async Task<ImageDto?> DownloadImage(string id)
     {
         BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
         bool blobExists = await blobClient.ExistsAsync();
@@ -38,10 +39,15 @@ public class BlobImageStore : IImageStore
         BlobProperties properties = await blobClient.GetPropertiesAsync();
         string contentType = properties.ContentType;
         
-        MemoryStream stream = new MemoryStream();
-        await blobClient.DownloadToAsync(stream);
-        byte[] blobContent = stream.ToArray();
-        
-        return new FileContentResult(blobContent, contentType);
+        MemoryStream content = new MemoryStream();
+        await blobClient.DownloadToAsync(content);
+
+        return new ImageDto(contentType, content);
+    }
+
+    public async Task DeleteImage(string id)
+    {
+        BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
+        await blobClient.DeleteIfExistsAsync();
     }
 }

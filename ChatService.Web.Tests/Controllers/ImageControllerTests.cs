@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using ChatService.Web.Dtos;
 using ChatService.Web.Storage;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -30,14 +29,15 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
     [Fact]
     public async Task UploadImage_Success()
     {
+        var image = new ImageDto("image/jpeg", new MemoryStream());
         var imageId = Guid.NewGuid().ToString();
         var uploadImageResponse = new UploadImageResponse(imageId);
         
-        _imageStoreMock.Setup(m => m.UploadImage(It.IsAny<IFormFile>()))
+        _imageStoreMock.Setup(m => m.UploadImage(It.IsAny<ImageDto>()))
             .ReturnsAsync(imageId);
         
-        var fileContent = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes("This is a mock image file content")));
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        var fileContent = new StreamContent(image.Content);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(image.ContentType);
         _content.Add(fileContent,"File", "image.jpeg");
         
         var response = await _httpClient.PostAsync("/Image", _content);
@@ -58,7 +58,7 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         
-        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<IFormFile>()), Times.Never);
+        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<ImageDto>()), Times.Never);
     }
     
     [Fact]
@@ -75,17 +75,18 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
         var json = await response.Content.ReadAsStringAsync();
         Assert.Equal("Invalid file, must be an image.", json);
         
-        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<IFormFile>()), Times.Never);
+        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<ImageDto>()), Times.Never);
     }
     
     [Fact]
     public async Task DownloadImage_Success()
     {
         var imageId = Guid.NewGuid().ToString();
-        var fileContentResult = new FileContentResult(new byte[1024], "image/jpg");
+        var image = new ImageDto("image/jpeg", new MemoryStream());
+        var fileContentResult = new FileContentResult(image.Content.ToArray(), image.ContentType);
 
         _imageStoreMock.Setup(m => m.DownloadImage(imageId))
-            .ReturnsAsync(fileContentResult);
+            .ReturnsAsync(image);
 
         var response = await _httpClient.GetAsync($"/Image/{imageId}");
         

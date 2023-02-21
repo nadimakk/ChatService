@@ -25,19 +25,23 @@ public class ImageController : ControllerBase
         {
             return BadRequest($"Invalid file, must be an image.");
         }
+
+        MemoryStream content = new();
+        await request.File.CopyToAsync(content);
+        ImageDto image = new ImageDto(contentType, content);
         
-        string imageId = await _imageStore.UploadImage(request.File);
+        string imageId = await _imageStore.UploadImage(image);
         return CreatedAtAction(nameof(DownloadImage), new { id = imageId }, new UploadImageResponse(imageId));
     }
     
     [HttpGet("{id}")] 
     public async  Task<IActionResult> DownloadImage(string id)
     {
-        FileContentResult? imageResult = await _imageStore.DownloadImage(id);
-        if (imageResult == null)
+        ImageDto? image = await _imageStore.DownloadImage(id);
+        if (image == null)
         {
            return NotFound($"An image with id {id} was not found.");
         }
-        return imageResult;
+        return new FileContentResult(image.Content.ToArray(), image.ContentType);
     }
 }
