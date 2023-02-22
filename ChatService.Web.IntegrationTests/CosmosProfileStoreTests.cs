@@ -1,6 +1,8 @@
 using ChatService.Web.Dtos;
 using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
@@ -30,8 +32,19 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
 
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
     {
-        _store = factory.Services.GetRequiredService<IProfileStore>();
-        //TODO:inject mock
+        var config = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        string connectionString = config.GetSection("Cosmos").GetValue<string>("ConnectionString");
+        
+        var services = new ServiceCollection();
+        services.AddSingleton(_imageStoreMock.Object);
+        services.AddSingleton<CosmosClient>(new CosmosClient(connectionString));
+        services.AddSingleton<IProfileStore, CosmosProfileStore>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        _store = serviceProvider.GetRequiredService<IProfileStore>();
     }
     
     [Fact]
