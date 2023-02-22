@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using ChatService.Web.Dtos;
@@ -40,18 +41,23 @@ public class BlobImageStore : IImageStore
     public async Task<Image?> DownloadImage(string id)
     {
         BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
-        bool blobExists = await blobClient.ExistsAsync();
-        if (!blobExists)
-        {
-            return null;
-        }
-        BlobProperties properties = await blobClient.GetPropertiesAsync();
-        string contentType = properties.ContentType;
-        
-        MemoryStream content = new MemoryStream();
-        await blobClient.DownloadToAsync(content);
 
-        return new Image(contentType, content);
+        try
+        {
+            MemoryStream content = new MemoryStream();
+            await blobClient.DownloadToAsync(content);
+            BlobProperties properties = await blobClient.GetPropertiesAsync();
+            string contentType = properties.ContentType;
+            return new Image(contentType, content);
+        }
+        catch (RequestFailedException ex)
+        {
+            if (ex.Status == 404)
+            {
+                return null;
+            }
+            throw;
+        }
     }
 
     public async Task<bool> DeleteImage(string id)
