@@ -1,4 +1,5 @@
 using System.Text;
+using Azure;
 using ChatService.Web.Dtos;
 using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -63,7 +64,7 @@ public class BlobImageStoreTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadImage_NotFound()
     {
         var downloadedImage = await _store.DownloadImage("dummy_id");
-        
+
         Assert.Null(downloadedImage);
     }
     
@@ -78,5 +79,21 @@ public class BlobImageStoreTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task DeleteImage_Failure()
     {
         Assert.False(await _store.DeleteImage("dummy_id"));
+    }
+    
+    [Fact]
+    public async Task ImageExists_Exists()
+    {
+        string imageId = await _store.UploadImage(_image);
+        
+        Assert.True(await _store.ImageExists(imageId));
+        
+        _imageId = imageId;
+    }
+        
+    [Fact]
+    public async Task ImageExists_DoesntExist()
+    {
+        Assert.False(await _store.ImageExists("dummy_id"));
     }
 }
