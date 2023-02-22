@@ -28,7 +28,7 @@ public class ImageController : ControllerBase
 
         MemoryStream content = new();
         await request.File.CopyToAsync(content);
-        ImageDto image = new ImageDto(contentType, content);
+        Image image = new Image(contentType, content);
         
         string imageId = await _imageStore.UploadImage(image);
         return CreatedAtAction(nameof(DownloadImage), new { id = imageId }, new UploadImageResponse(imageId));
@@ -37,7 +37,7 @@ public class ImageController : ControllerBase
     [HttpGet("{id}")] 
     public async  Task<IActionResult> DownloadImage(string id)
     {
-        ImageDto? image = await _imageStore.DownloadImage(id);
+        Image? image = await _imageStore.DownloadImage(id);
         if (image == null)
         {
            return NotFound($"An image with id {id} was not found.");

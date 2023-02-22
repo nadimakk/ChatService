@@ -29,11 +29,11 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
     [Fact]
     public async Task UploadImage_Success()
     {
-        var image = new ImageDto("image/jpeg", new MemoryStream());
+        var image = new Image("image/jpeg", new MemoryStream());
         var imageId = Guid.NewGuid().ToString();
         var uploadImageResponse = new UploadImageResponse(imageId);
         
-        _imageStoreMock.Setup(m => m.UploadImage(It.IsAny<ImageDto>()))
+        _imageStoreMock.Setup(m => m.UploadImage(It.IsAny<Image>()))
             .ReturnsAsync(imageId);
         
         var fileContent = new StreamContent(image.Content);
@@ -58,7 +58,7 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         
-        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<ImageDto>()), Times.Never);
+        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<Image>()), Times.Never);
     }
     
     [Fact]
@@ -75,14 +75,14 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
         var json = await response.Content.ReadAsStringAsync();
         Assert.Equal("Invalid file, must be an image.", json);
         
-        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<ImageDto>()), Times.Never);
+        _imageStoreMock.Verify( m => m.UploadImage(It.IsAny<Image >()), Times.Never);
     }
     
     [Fact]
     public async Task DownloadImage_Success()
     {
         var imageId = Guid.NewGuid().ToString();
-        var image = new ImageDto("image/jpeg", new MemoryStream());
+        var image = new Image("image/jpeg", new MemoryStream());
         var fileContentResult = new FileContentResult(image.Content.ToArray(), image.ContentType);
 
         _imageStoreMock.Setup(m => m.DownloadImage(imageId))

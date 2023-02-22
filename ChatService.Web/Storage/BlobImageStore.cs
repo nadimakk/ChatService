@@ -15,7 +15,7 @@ public class BlobImageStore : IImageStore
 
     private BlobContainerClient BlobContainerClient => _blobServiceClient.GetBlobContainerClient("images");
 
-    public async Task<string> UploadImage(ImageDto image)
+    public async Task<string> UploadImage(Image image)
     {
         
         string contentType = image.ContentType.ToLower();
@@ -37,7 +37,7 @@ public class BlobImageStore : IImageStore
         return imageId;
     }
 
-    public async Task<ImageDto?> DownloadImage(string id)
+    public async Task<Image?> DownloadImage(string id)
     {
         BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
         bool blobExists = await blobClient.ExistsAsync();
@@ -51,7 +51,7 @@ public class BlobImageStore : IImageStore
         MemoryStream content = new MemoryStream();
         await blobClient.DownloadToAsync(content);
 
-        return new ImageDto(contentType, content);
+        return new Image(contentType, content);
     }
 
     public async Task<bool> DeleteImage(string id)

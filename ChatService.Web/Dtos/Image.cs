@@ -1,5 +1,5 @@
 namespace ChatService.Web.Dtos;
 
-public record ImageDto(
+public record Image(
     string ContentType, 
     MemoryStream Content);

@@ -9,7 +9,7 @@ namespace ChatService.Web.IntegrationTests;
 public class BlobImageStoreTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 { 
     private readonly IImageStore _store;
-    private readonly ImageDto _image = new ImageDto("image/jpg",
+    private readonly Image _image = new Image("image/jpg",
         new MemoryStream(Encoding.UTF8.GetBytes("This is a mock image file content")));
     private string _imageId;
     
@@ -43,7 +43,7 @@ public class BlobImageStoreTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task UploadImage_Failure()
     {
-       var notImage = new ImageDto("text/plain",
+       var notImage = new Image("text/plain",
             new MemoryStream(Encoding.UTF8.GetBytes("This is a mock file simulating an invalid image type")));
        
        await Assert.ThrowsAsync<ArgumentException>(async () => await _store.UploadImage(notImage));
