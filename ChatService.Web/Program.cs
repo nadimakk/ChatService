@@ -1,5 +1,6 @@
 using Azure.Storage.Blobs;
 using ChatService.Web.Configuration;
+using ChatService.Web.Services;
 using ChatService.Web.Storage;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,7 @@ builder.Services.AddSingleton(sp =>
         return new BlobServiceClient(blobOptions.Value.ConnectionString);
     }
 );
+builder.Services.AddSingleton<IProfileService, ProfileService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
