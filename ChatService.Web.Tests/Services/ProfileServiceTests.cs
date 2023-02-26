@@ -42,6 +42,8 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AddNewProfile_Success()
     {
+        _profileStoreMock.Setup(m => m.ProfileExists(_profile.username))
+            .ReturnsAsync(false);
         _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
             .ReturnsAsync(true);
 
@@ -73,6 +75,17 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     {
         Profile profile = new(username, firstName, lastName, profilePictureId);
         await Assert.ThrowsAsync<ArgumentException>( async () =>  await _profileService.AddProfile(profile));
+    }
+    
+    [Fact]
+    public async Task AddNewProfile_UsernameTaken()
+    {
+        _profileStoreMock.Setup(m => m.ProfileExists(_profile.username))
+            .ReturnsAsync(true);
+
+        await Assert.ThrowsAsync<ArgumentException>( async () =>  await _profileService.AddProfile(_profile));
+        
+        _profileStoreMock.Verify(m => m.AddProfile(_profile), Times.Never);
     }
     
     [Fact]

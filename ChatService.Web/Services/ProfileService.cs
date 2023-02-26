@@ -30,11 +30,19 @@ public class ProfileService : IProfileService
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
+
+        bool usernameTaken = await _profileStore.ProfileExists(profile.username);
+        if (usernameTaken)
+        {
+            throw new ArgumentException($"The username {profile.username} is taken.");
+        }
+        
         bool imageExists = await _imageStore.ImageExists(profile.profilePictureId);
         if (!imageExists)
         {
-            throw new ArgumentException("The profile picture of the profile does not exist.");
+            throw new ArgumentException("Invalid profile picture ID.");
         }
+        
         await _profileStore.AddProfile(profile);
     }
 
