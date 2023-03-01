@@ -1,4 +1,5 @@
 using ChatService.Web.Dtos;
+using ChatService.Web.Exceptions;
 using ChatService.Web.Storage;
 
 namespace ChatService.Web.Services;
@@ -31,16 +32,10 @@ public class ProfileService : IProfileService
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
 
-        bool usernameTaken = await _profileStore.ProfileExists(profile.username);
-        if (usernameTaken)
-        {
-            throw new ArgumentException($"The username {profile.username} is taken.");
-        }
-        
         bool imageExists = await _imageStore.ImageExists(profile.profilePictureId);
         if (!imageExists)
         {
-            throw new ArgumentException("Invalid profile picture ID.");
+            throw new ImageNotFoundException("Invalid profile picture ID.");
         }
         
         await _profileStore.AddProfile(profile);

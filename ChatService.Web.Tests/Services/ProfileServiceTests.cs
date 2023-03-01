@@ -1,4 +1,5 @@
 using ChatService.Web.Dtos;
+using ChatService.Web.Exceptions;
 using ChatService.Web.Services;
 using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -80,12 +81,12 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AddNewProfile_UsernameTaken()
     {
-        _profileStoreMock.Setup(m => m.ProfileExists(_profile.username))
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
             .ReturnsAsync(true);
+        _profileStoreMock.Setup(m => m.AddProfile(_profile))
+            .ThrowsAsync(new UsernameTakenException($"A profile with username {_profile.username} already exists."));
 
-        await Assert.ThrowsAsync<ArgumentException>( async () =>  await _profileService.AddProfile(_profile));
-        
-        _profileStoreMock.Verify(m => m.AddProfile(_profile), Times.Never);
+        await Assert.ThrowsAsync<UsernameTakenException>( async () =>  await _profileService.AddProfile(_profile));
     }
     
     [Fact]
@@ -94,7 +95,7 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
         _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
             .ReturnsAsync(false);
 
-        await Assert.ThrowsAsync<ArgumentException>( async () =>  await _profileService.AddProfile(_profile));
+        await Assert.ThrowsAsync<ImageNotFoundException>( async () =>  await _profileService.AddProfile(_profile));
     }
     
     [Fact]

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using ChatService.Web.Dtos;
+using ChatService.Web.Exceptions;
 using ChatService.Web.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -77,14 +78,11 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     public async Task PostProfile_UsernameTaken()
     {
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
-            .ThrowsAsync(new ArgumentException($"The username {_profile.username} is taken."));
-
+            .ThrowsAsync(new UsernameTakenException($"The username {_profile.username} is taken."));
+        
         var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
         
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        
-        var json = await response.Content.ReadAsStringAsync();
-        Assert.Equal($"The username {_profile.username} is taken.", json);
     }
 
     [Theory]
@@ -116,7 +114,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     public async Task ProfileProfile_ProfilePictureNotFound()
     {
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
-            .ThrowsAsync(new ArgumentException("Invalid profile picture ID."));
+            .ThrowsAsync(new ImageNotFoundException("Invalid profile picture ID."));
         
         var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
         

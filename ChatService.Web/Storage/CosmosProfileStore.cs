@@ -1,5 +1,6 @@
 using System.Net;
 using ChatService.Web.Dtos;
+using ChatService.Web.Exceptions;
 using ChatService.Web.Storage.Entities;
 using Microsoft.Azure.Cosmos;
 
@@ -27,8 +28,19 @@ public class CosmosProfileStore : IProfileStore
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
-        
-        await Container.UpsertItemAsync(ToEntity(profile));
+
+        try
+        {
+            await Container.CreateItemAsync(ToEntity(profile), new PartitionKey(profile.username));
+        }
+        catch (CosmosException e)
+        {
+            if (e.StatusCode == HttpStatusCode.Conflict)
+            {
+                throw new UsernameTakenException($"A profile with username {profile.username} already exists.");
+            }
+            throw;
+        }
     }
     
     public async Task<Profile?> GetProfile(string username)

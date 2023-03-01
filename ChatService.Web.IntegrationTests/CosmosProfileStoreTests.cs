@@ -1,4 +1,5 @@
 using ChatService.Web.Dtos;
+using ChatService.Web.Exceptions;
 using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -63,6 +64,13 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
         await Assert.ThrowsAsync<ArgumentException>( async () =>  await _store.AddProfile(null));
     }
 
+    [Fact]
+    public async Task AddNewProfile_UsernameTaken()
+    {
+        await _store.AddProfile(_profile);
+        await Assert.ThrowsAsync<UsernameTakenException>( async () =>  await _store.AddProfile(_profile));
+    }
+    
     [Fact]
     public async Task GetNonExistingProfile()
     {

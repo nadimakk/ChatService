@@ -1,4 +1,5 @@
 using ChatService.Web.Dtos;
+using ChatService.Web.Exceptions;
 using ChatService.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,17 +36,13 @@ public class ProfileController : ControllerBase
             await _profileService.AddProfile(profile);
             return CreatedAtAction(nameof(GetProfile), new { username = profile.username }, profile);
         }
-        catch (ArgumentException e)
+        catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException)
         {
-            if (e.Message == $"The username {profile.username} is taken.")
-            {
-                return Conflict(e.Message);
-            }
-            if (e.Message == $"Invalid profile {profile}" || e.Message == "Invalid profile picture ID.")
-            {
-                return BadRequest(e.Message);
-            }
-            throw;
+            return BadRequest(e.Message);
+        }
+        catch (UsernameTakenException e)
+        {
+            return Conflict(e.Message);
         }
     }
 }
