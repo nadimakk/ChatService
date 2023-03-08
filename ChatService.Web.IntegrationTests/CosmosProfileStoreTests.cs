@@ -1,17 +1,14 @@
 using ChatService.Web.Dtos;
+using ChatService.Web.Exceptions;
 using ChatService.Web.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
 
 namespace ChatService.Web.IntegrationTests;
 
 public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly IProfileStore _store;
-    private readonly Mock<IImageStore> _imageStoreMock = new();
 
     private readonly Profile _profile = new(
         username: Guid.NewGuid().ToString(),
@@ -32,27 +29,12 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
 
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
     {
-        var config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .Build();
-        
-        string connectionString = config.GetSection("Cosmos").GetValue<string>("ConnectionString");
-        
-        var services = new ServiceCollection();
-        services.AddSingleton(_imageStoreMock.Object);
-        services.AddSingleton<CosmosClient>(new CosmosClient(connectionString));
-        services.AddSingleton<IProfileStore, CosmosProfileStore>();
-        
-        var serviceProvider = services.BuildServiceProvider();
-        _store = serviceProvider.GetRequiredService<IProfileStore>();
+        _store = factory.Services.GetRequiredService<IProfileStore>();
     }
     
     [Fact]
     public async Task AddNewProfile_Success()
     {
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
-            .ReturnsAsync(true);
-        
         await _store.AddProfile(_profile);
         Assert.Equal(_profile, await _store.GetProfile(_profile.username));
     }
@@ -83,12 +65,10 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     }
 
     [Fact]
-    public async Task AddNewProfile_ProfilePictureNotFound()
+    public async Task AddNewProfile_UsernameTaken()
     {
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
-            .ReturnsAsync(false);
-
-        await Assert.ThrowsAsync<ArgumentException>( async () =>  await _store.AddProfile(_profile));
+        await _store.AddProfile(_profile);
+        await Assert.ThrowsAsync<UsernameTakenException>( async () =>  await _store.AddProfile(_profile));
     }
     
     [Fact]
@@ -100,12 +80,22 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task DeleteProfile()
     {
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
-            .ReturnsAsync(true);
-        
         await _store.AddProfile(_profile);
         Assert.Equal(_profile, await _store.GetProfile(_profile.username));
         await _store.DeleteProfile(_profile.username);
         Assert.Null(await _store.GetProfile(_profile.username));
+    }
+    
+    [Fact]
+    public async Task ProfileExists_Exists()
+    {
+        await _store.AddProfile(_profile);
+        Assert.True(await _store.ProfileExists(_profile.username));
+    }
+    
+    [Fact]
+    public async Task ProfileExists_DoesNotExist()
+    {
+        Assert.False(await _store.ProfileExists(_profile.username));
     }
 }

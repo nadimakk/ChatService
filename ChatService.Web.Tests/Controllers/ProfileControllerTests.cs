@@ -1,7 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using ChatService.Web.Dtos;
-using ChatService.Web.Storage;
+using ChatService.Web.Exceptions;
+using ChatService.Web.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,8 +13,7 @@ namespace ChatService.Web.Tests.Controllers;
 
 public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly Mock<IProfileStore> _profileStoreMock = new();
-    private readonly Mock<IImageStore> _imageStoreMock = new();
+    private  readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly HttpClient _httpClient;
     private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
     
@@ -23,8 +23,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
         {
             builder.ConfigureTestServices(services =>
             {
-                services.AddSingleton(_profileStoreMock.Object);
-                services.AddSingleton(_imageStoreMock.Object);
+                services.AddSingleton(_profileServiceMock.Object);
             });
         }).CreateClient();
     }
@@ -32,7 +31,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task GetProfile_Success()
     {
-        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+        _profileServiceMock.Setup(m => m.GetProfile(_profile.username))
             .ReturnsAsync(_profile);
 
         var response = await _httpClient.GetAsync($"/Profile/{_profile.username}");
@@ -47,7 +46,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task GetProfile_ProfileNotFound()
     {
-        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+        _profileServiceMock.Setup(m => m.GetProfile(_profile.username))
             .ReturnsAsync((Profile?) null);
 
         var response = await _httpClient.GetAsync($"/Profile/{_profile.username}");
@@ -61,36 +60,29 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task PostProfile_Success()
     {
-        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
-            .ReturnsAsync((Profile?) null);
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
-            .ReturnsAsync(true);
-
         var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
         
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        
+        Assert.Equal($"http://localhost/Profile/{_profile.username}",
+            response.Headers.GetValues("Location").First());
         
         var json = await response.Content.ReadAsStringAsync();
         var receivedProfile = JsonConvert.DeserializeObject<Profile>(json);
         Assert.Equal(_profile, receivedProfile);
         
-        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Once);
+        _profileServiceMock.Verify(mock => mock.AddProfile(_profile), Times.Once);
     }
     
     [Fact]
     public async Task PostProfile_UsernameTaken()
     {
-        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
-            .ReturnsAsync(_profile);
-
+        _profileServiceMock.Setup(m => m.AddProfile(_profile))
+            .ThrowsAsync(new UsernameTakenException($"The username {_profile.username} is taken."));
+        
         var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
         
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        
-        var json = await response.Content.ReadAsStringAsync();
-        Assert.Equal($"A user with the username {_profile.username} already exist.", json);
-        
-        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
     }
 
     [Theory]
@@ -108,26 +100,24 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [InlineData("foobar", "Foo", "Bar", " ")]
     public async Task PostProfile_InvalidArguments(string username, string firstName, string lastName, string profilePictureId)
     {
+        _profileServiceMock.Setup(m => m.AddProfile(_profile))
+            .ThrowsAsync(new ArgumentException($"Invalid profile {_profile}"));
+        
         Profile profile = new(username, firstName, lastName, profilePictureId);
 
         var response = await _httpClient.PostAsJsonAsync("/Profile", profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
     }
 
     [Fact]
     public async Task ProfileProfile_ProfilePictureNotFound()
     {
-        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
-            .ReturnsAsync((Profile?) null);
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
-            .ReturnsAsync(false);
-
+        _profileServiceMock.Setup(m => m.AddProfile(_profile))
+            .ThrowsAsync(new ImageNotFoundException("Invalid profile picture ID."));
+        
         var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        
-        _profileStoreMock.Verify(mock => mock.AddProfile(_profile), Times.Never);
     }
 }
