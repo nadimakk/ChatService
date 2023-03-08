@@ -25,8 +25,11 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
       
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+    - name: Run unit tests
+      run: dotnet test ChatService.Web.Tests/ChatService.Web.Tests.csproj
+  
+    - name: Run integration tests
+      run: dotnet test ChatService.Web.IntegrationTests/ChatService.Web.IntegrationTests.csproj
       env:
         Cosmos:ConnectionString: ${{ secrets.COSMOS_CONNECTIONSTRING }}
         BlobStorage:ConnectionString: ${{ secrets.BLOBSTORAGE_CONNECTIONSTRING }}
