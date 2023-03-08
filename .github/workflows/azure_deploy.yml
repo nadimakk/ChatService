@@ -1,0 +1,47 @@
+name: Build, Test, and Deploy to Azure
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+
+env:
+  AZURE_WEBAPP_NAME: chat-service-ali-nadim
+  AZURE_WEBAPP_PACKAGE_PATH: './publish' 
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+          
+      - name: Restore dependencies
+        run: dotnet restore ./ChatService.sln
+        
+      - name: Build
+        run: dotnet build ./ChatService.sln --configuration Release --no-restore
+        
+      - name: Run unit tests
+        run: dotnet test ChatService.Web.Tests/ChatService.Web.Tests.csproj
+        
+      - name: Run integration tests
+        run: dotnet test ChatService.Web.IntegrationTests/ChatService.Web.IntegrationTests.csproj
+        
+      - name: Publish
+        run: dotnet publish --configuration Release --output '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}' --no-restore ChatService.Web
+        
+      - name: Deploy
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_CHATSERVICE }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
