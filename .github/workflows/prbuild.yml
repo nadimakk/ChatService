@@ -26,10 +26,10 @@ jobs:
       run: dotnet build --no-restore
       
     - name: Run unit tests
-      run: dotnet test ChatService.Web.Tests/ChatService.Web.Tests.csproj
-  
+      run: dotnet test ChatService.Web.Tests/bin/Release/net6.0/ChatService.Web.Tests.dll
+
     - name: Run integration tests
-      run: dotnet test ChatService.Web.IntegrationTests/ChatService.Web.IntegrationTests.csproj
+      run: dotnet test ChatService.Web.IntegrationTests/bin/Release/net6.0/ChatService.Web.IntegrationTests.dll
       env:
         Cosmos:ConnectionString: ${{ secrets.COSMOS_CONNECTIONSTRING }}
         BlobStorage:ConnectionString: ${{ secrets.BLOBSTORAGE_CONNECTIONSTRING }}
