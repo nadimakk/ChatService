@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add Configuration
 builder.Services.Configure<CosmosSettings>(builder.Configuration.GetSection("Cosmos"));
-builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("Blob"));
+builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobStorage"));
 
 // Add services to the container.
 builder.Services.AddSingleton<IProfileStore, CosmosProfileStore>();
