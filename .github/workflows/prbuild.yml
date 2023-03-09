@@ -23,7 +23,7 @@ jobs:
       run: dotnet restore
       
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --configuration Release --no-restore
       
     - name: Run unit tests
       run: dotnet test ChatService.Web.Tests/bin/Release/net6.0/ChatService.Web.Tests.dll
