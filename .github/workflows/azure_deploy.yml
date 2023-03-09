@@ -35,6 +35,9 @@ jobs:
         
       - name: Run integration tests
         run: dotnet test ChatService.Web.IntegrationTests/bin/Release/net6.0/ChatService.Web.IntegrationTests.dll
+        env:
+          Cosmos:ConnectionString: ${{ secrets.COSMOS_CONNECTIONSTRING }}
+          BlobStorage:ConnectionString: ${{ secrets.BLOBSTORAGE_CONNECTIONSTRING }}
         
       - name: Publish
         run: dotnet publish --configuration Release --output '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}' --no-restore ChatService.Web
