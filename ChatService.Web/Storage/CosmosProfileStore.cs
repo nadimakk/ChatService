@@ -10,12 +10,12 @@ public class CosmosProfileStore : IProfileStore
 {
     private readonly CosmosClient _cosmosClient;
 
-    public CosmosProfileStore(CosmosClient cosmosClient, IImageStore imageStore)
+    public CosmosProfileStore(CosmosClient cosmosClient)
     {
         _cosmosClient = cosmosClient;
     }
 
-    private Container Container => _cosmosClient.GetDatabase("chatService").GetContainer("profiles");
+    private Container Container => _cosmosClient.GetDatabase("chatService").GetContainer("sharedContainer");
 
     public async Task AddProfile(Profile profile)
     {

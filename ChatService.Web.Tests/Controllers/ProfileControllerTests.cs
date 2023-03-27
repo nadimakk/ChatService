@@ -13,7 +13,7 @@ namespace ChatService.Web.Tests.Controllers;
 
 public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private  readonly Mock<IProfileService> _profileServiceMock = new();
+    private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly HttpClient _httpClient;
     private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
     
