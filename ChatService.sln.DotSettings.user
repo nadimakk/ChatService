@@ -12,9 +12,11 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=da215107_002D8529_002D436c_002D896b_002D16af167896d3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;Solution /&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Housekeeping/UnitTestingMru/UnitTestRunner/EnvironmentVariablesIndexed/=BlobStorage_003AConnectionString/@EntryIndexedValue">DefaultEndpointsProtocol=https;AccountName=naa137;AccountKey=p6VJPQjkAPm3/JxBIY1l7Yj9ewb4Fp2l+Aciwm969OgT57+70hT/jMKcyDIdIwIJaEijfqsxAOdf+AStE/MZDw==;EndpointSuffix=core.windows.net</s:String>
 	
-	<s:String x:Key="/Default/Housekeeping/UnitTestingMru/UnitTestRunner/EnvironmentVariablesIndexed/=Cosmos_003AConnectionString/@EntryIndexedValue">AccountEndpoint=https://chat-service.documents.azure.com:443/;AccountKey=bTPHlotBT0IYyYa4sFscBdFm3dzVpTexbtk8ygqhytijFYLpJAByf5CThrODbuDVvmTOcDio2ywEACDbCYlcOg==;</s:String>
+	<s:String x:Key="/Default/Housekeeping/UnitTestingMru/UnitTestRunner/EnvironmentVariablesIndexed/=BlobStorage_005F_005FConnectionString/@EntryIndexedValue">DefaultEndpointsProtocol=https;AccountName=naa137;AccountKey=p6VJPQjkAPm3/JxBIY1l7Yj9ewb4Fp2l+Aciwm969OgT57+70hT/jMKcyDIdIwIJaEijfqsxAOdf+AStE/MZDw==;EndpointSuffix=core.windows.net</s:String>
+	
+	
+	<s:String x:Key="/Default/Housekeeping/UnitTestingMru/UnitTestRunner/EnvironmentVariablesIndexed/=Cosmos_005F_005FConnectionString/@EntryIndexedValue">AccountEndpoint=https://chat-service.documents.azure.com:443/;AccountKey=bTPHlotBT0IYyYa4sFscBdFm3dzVpTexbtk8ygqhytijFYLpJAByf5CThrODbuDVvmTOcDio2ywEACDbCYlcOg==;</s:String>
 	
 	
 	

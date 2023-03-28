@@ -87,11 +87,17 @@ public class CosmosConversationStore : IConversationStore
         {
             throw new ArgumentException($"Invalid limit {limit}");
         }
+        
+        List<UserConversation> userConversations = new ();
+        string nextContinuationToken = null;
+        
+        QueryRequestOptions options = new QueryRequestOptions();
+        options.MaxItemCount = limit;
 
-        var query = Container.GetItemLinqQueryable<UserConversationEntity>(true, continuationToken)
-            .Where(e => e.partitionKey == username && e.lastModifiedTime > lastSeenConversationTime)
-            .Take(limit);
-
+        IQueryable<UserConversationEntity> query = Container
+            .GetItemLinqQueryable<UserConversationEntity>(false, continuationToken, options)
+            .Where(e => e.partitionKey == username && e.lastModifiedTime > lastSeenConversationTime);
+        
         if (order == OrderBy.ASC)
         {
             query = query.OrderBy(e => e.lastModifiedTime);
@@ -101,18 +107,15 @@ public class CosmosConversationStore : IConversationStore
             query = query.OrderByDescending(e => e.lastModifiedTime);
         }
         
-        var iterator = query.ToFeedIterator();
-
-        List<UserConversation> userConversations = new ();
-        string nextContinuationToken = "";
-        
-        while (iterator.HasMoreResults)
+        using (FeedIterator<UserConversationEntity> iterator = query.ToFeedIterator())
         {
-            var response = await iterator.ReadNextAsync();
+            FeedResponse<UserConversationEntity> response = await iterator.ReadNextAsync();
             var receivedUserConversations = response.Select(ToUserConversation);
+            
             userConversations.AddRange(receivedUserConversations);
+            
             nextContinuationToken = response.ContinuationToken;
-        }
+        };
 
         return (userConversations, nextContinuationToken);
     }
