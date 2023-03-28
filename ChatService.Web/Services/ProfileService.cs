@@ -32,6 +32,11 @@ public class ProfileService : IProfileService
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
 
+        if (profile.username.Contains('_'))
+        {
+            throw new InvalidUsernameException($"Username {profile.username} is invalid. Usernames cannot have an underscore.");
+        }
+        
         bool imageExists = await _imageStore.ImageExists(profile.profilePictureId);
         if (!imageExists)
         {

@@ -90,6 +90,13 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     }
     
     [Fact]
+    public async Task AddNewProfile_InvalidUsername()
+    {
+        Profile profile = new("username_with_underscore", "firstName", "lastName", "profilePictureId");
+        await Assert.ThrowsAsync<InvalidUsernameException>( async () =>  await _profileService.AddProfile(profile));
+    }
+    
+    [Fact]
     public async Task AddNewProfile_ProfilePictureNotFound()
     {
         _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))

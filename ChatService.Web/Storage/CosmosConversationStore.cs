@@ -1,8 +1,10 @@
 using System.Net;
 using ChatService.Web.Dtos;
+using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage.Entities;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
 
 namespace ChatService.Web.Storage;
 
@@ -16,31 +18,6 @@ public class CosmosConversationStore : IConversationStore
     }
     
     private Container Container => _cosmosClient.GetDatabase("chatService").GetContainer("sharedContainer");
-
-    
-    public async Task CreateConversation(Conversation conversation)
-    {
-        if (conversation == null ||
-            conversation.participants.Count < 2 ||
-            string.IsNullOrWhiteSpace(conversation.id)
-            )
-        {
-            throw new ArgumentException($"Invalid conversation {conversation}", nameof(conversation));
-        }
-
-        try
-        {
-            await Container.CreateItemAsync(ToEntity(conversation), new PartitionKey(conversation.id));
-        }
-        catch (CosmosException e)
-        {
-            if (e.StatusCode == HttpStatusCode.Conflict)
-            {
-                throw new ConversationExistsException($"A conversation with id {conversation.id} already exists.");
-            }
-            throw;
-        }
-    }
 
     public async Task CreateUserConversation(UserConversation userConversation)
     {
@@ -65,25 +42,81 @@ public class CosmosConversationStore : IConversationStore
             throw;
         }
     }
-    
-    public async Task DeleteConversation(string conversationId)
+
+    public async Task<UserConversation> GetUserConversation(string username, string conversationId)
     {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException($"Invalid username {username}");
+        }
+
+        if (string.IsNullOrWhiteSpace(conversationId))
+        {
+            throw new ArgumentException($"Invalid conversationId {conversationId}");
+        }
         try
         {
-            await Container.DeleteItemAsync<Conversation>(
-                id: conversationId, 
-                partitionKey: new PartitionKey(conversationId));
+            var entity = await Container.ReadItemAsync<UserConversationEntity>(
+                id: conversationId,
+                partitionKey: new PartitionKey(username),
+                new ItemRequestOptions
+                {
+                    ConsistencyLevel = ConsistencyLevel.Session
+                }
+            );
+            return ToUserConversation(entity);
         }
         catch (CosmosException e)
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                return;
+                throw new UserConversationNotFoundException($"A UserConversation with conversationId {conversationId} was not found.");
             }
             throw;
         }
     }
-    
+
+    public async Task<(List<UserConversation> UserConversations, string NextContinuationToken)> GetUserConversations
+        (string username, int limit, OrderBy order, string? continuationToken, long lastSeenConversationTime)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException("Username cannot be null or empty.");
+        }
+        if (limit <= 0)
+        {
+            throw new ArgumentException($"Invalid limit {limit}");
+        }
+
+        var query = Container.GetItemLinqQueryable<UserConversationEntity>(true, continuationToken)
+            .Where(e => e.partitionKey == username && e.lastModifiedTime > lastSeenConversationTime)
+            .Take(limit);
+
+        if (order == OrderBy.ASC)
+        {
+            query = query.OrderBy(e => e.lastModifiedTime);
+        }
+        else
+        {
+            query = query.OrderByDescending(e => e.lastModifiedTime);
+        }
+        
+        var iterator = query.ToFeedIterator();
+
+        List<UserConversation> userConversations = new ();
+        string nextContinuationToken = "";
+        
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            var receivedUserConversations = response.Select(ToUserConversation);
+            userConversations.AddRange(receivedUserConversations);
+            nextContinuationToken = response.ContinuationToken;
+        }
+
+        return (userConversations, nextContinuationToken);
+    }
+
     public async Task DeleteUserConversation(string username, string conversationId)
     {
         try
@@ -101,39 +134,22 @@ public class CosmosConversationStore : IConversationStore
             throw;
         }
     }
-    
-    private static ConversationEntity ToEntity(Conversation conversation)
-    {
-        return new ConversationEntity(
-            partitionKey: conversation.id,
-            id: conversation.id,
-            conversation.lastModifiedTime,
-            conversation.participants
-        );
-    }
 
-    private static Conversation ToConversation(ConversationEntity entity)
-    {
-        return new Conversation(
-            id: entity.id,
-            entity.lastModifiedTime,
-            entity.participants
-        );
-    }
-    
     private static UserConversationEntity ToEntity(UserConversation userConversation)
     {
         return new UserConversationEntity(
             partitionKey: userConversation.username,
-            id: userConversation.conversationId
+            id: userConversation.conversationId,
+            userConversation.lastModifiedTime
         );
     }
 
     private static UserConversation ToUserConversation(UserConversationEntity entity)
     {
-        return new UserConversation(
-            username: entity.partitionKey,
-            conversationId: entity.id
-        );
+        return new UserConversation {
+            username = entity.partitionKey,
+            conversationId = entity.id,
+            lastModifiedTime = entity.lastModifiedTime
+        };
     }
 }

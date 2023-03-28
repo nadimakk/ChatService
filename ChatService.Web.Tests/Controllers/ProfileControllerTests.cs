@@ -109,7 +109,20 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+    
+    [Fact]
+    public async Task PostProfile_InvalidUsername()
+    {
+        Profile profile = new("username_with_underscore", "firstName", "lastName", "profilePictureId");
+        
+        _profileServiceMock.Setup(m => m.AddProfile(profile))
+            .ThrowsAsync(new InvalidUsernameException($"Username {profile.username} is invalid. Usernames cannot have an underscore."));
 
+        var response = await _httpClient.PostAsJsonAsync("/Profile", profile);
+        
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+    
     [Fact]
     public async Task ProfileProfile_ProfilePictureNotFound()
     {

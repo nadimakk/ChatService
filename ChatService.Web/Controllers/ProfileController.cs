@@ -36,7 +36,7 @@ public class ProfileController : ControllerBase
             await _profileService.AddProfile(profile);
             return CreatedAtAction(nameof(GetProfile), new { username = profile.username }, profile);
         }
-        catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException)
+        catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException || e is InvalidUsernameException)
         {
             return BadRequest(e.Message);
         }

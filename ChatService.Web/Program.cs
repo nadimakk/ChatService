@@ -14,6 +14,8 @@ builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobS
 // Add services to the container.
 builder.Services.AddSingleton<IProfileStore, CosmosProfileStore>();
 builder.Services.AddSingleton<IImageStore, BlobImageStore>();
+builder.Services.AddSingleton<IConversationStore, CosmosConversationStore>();
+
 builder.Services.AddSingleton(sp =>
 {
     var cosmosOptions = sp.GetRequiredService<IOptions<CosmosSettings>>();
