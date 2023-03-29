@@ -51,21 +51,22 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Theory]
-    [InlineData(null, "senderUsername", "text")]
-    [InlineData("", "senderUsername", "text")]
-    [InlineData(" ", "senderUsername", "text")]
-    [InlineData("id", null, "text")]
-    [InlineData("id", "", "text")]
-    [InlineData("id", " ", "text")]
-    [InlineData("id", "senderUsername", null)]
-    [InlineData("id", "senderUsername", "")]
-    [InlineData("id", "senderUsername", " ")]
-    public async Task AddMessage_InvalidArguments(string id, string senderUsername, string text)
+    [InlineData(null, "senderUsername", "text", 100)]
+    [InlineData("", "senderUsername", "text", 100)]
+    [InlineData(" ", "senderUsername", "text", 100)]
+    [InlineData("id", null, "text", 100)]
+    [InlineData("id", "", "text", 100)]
+    [InlineData("id", " ", "text", 100)]
+    [InlineData("id", "senderUsername", null, 100)]
+    [InlineData("id", "senderUsername", "", 100)]
+    [InlineData("id", "senderUsername", " ", 100)]
+    [InlineData("id", "senderUsername", "text", -100)]
+    public async Task AddMessage_InvalidArguments(string id, string senderUsername, string text, long unixTime)
     {
         Message message = new Message
         {
             id = id,
-            unixTime = 100,
+            unixTime = unixTime,
             senderUsername = senderUsername,
             text = text
         };
@@ -188,7 +189,20 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
         
         await DeleteMultipleMessages(_conversationId, _message2, _message3);
     }
-    
+
+    [Theory]
+    [InlineData(null, 10, 100)]
+    [InlineData("", 10, 100)]
+    [InlineData(" ", 10, 100)]
+    [InlineData("conversationId", 0, 100)]
+    [InlineData("conversationId", -10, 100)]
+    [InlineData("conversationId", 10, -100)]
+    public async Task GetMessages_InvalidArguments(string conversationId, int limit, long lastSeenMessageTime)
+    {
+        Assert.ThrowsAsync<ArgumentException>(() =>
+            _store.GetMessages(conversationId, limit, OrderBy.ASC, null, lastSeenMessageTime));
+    }
+
     private async Task AddMultipleMessages(string conversationId, params Message[] messages)
     {
         foreach (Message message in messages)

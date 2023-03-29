@@ -40,6 +40,15 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(_profile, receivedProfile);
     }
     
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task GetProfile_InvalidArguments(string username)
+    {
+        Assert.ThrowsAsync<ArgumentException>(() => _profileService.GetProfile(username));
+    }
+    
     [Fact]
     public async Task AddNewProfile_Success()
     {

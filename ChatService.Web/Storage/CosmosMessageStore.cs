@@ -24,7 +24,8 @@ public class CosmosMessageStore : IMessageStore
         if (message == null ||
             string.IsNullOrWhiteSpace(message.id) ||
             string.IsNullOrWhiteSpace(message.senderUsername) ||
-            string.IsNullOrWhiteSpace(message.text)
+            string.IsNullOrWhiteSpace(message.text) ||
+            message.unixTime < 0
            )
         {
             throw new ArgumentException($"Invalid message {message}", nameof(message));
@@ -88,9 +89,14 @@ public class CosmosMessageStore : IMessageStore
         {
             throw new ArgumentException($"Invalid limit {limit}");
         }
+
+        if (lastSeenMessageTime < 0)
+        {
+            throw new ArgumentException($"Invalid lastSeenMessageTime {lastSeenMessageTime}");
+        }
         
         List<Message> messages = new ();
-        string nextContinuationToken = null;
+        string? nextContinuationToken = null;
         
         QueryRequestOptions options = new QueryRequestOptions();
         options.MaxItemCount = limit;

@@ -23,7 +23,8 @@ public class CosmosConversationStore : IConversationStore
     {
         if (userConversation == null ||
             string.IsNullOrWhiteSpace(userConversation.username) ||
-            string.IsNullOrWhiteSpace(userConversation.conversationId)
+            string.IsNullOrWhiteSpace(userConversation.conversationId) ||
+            userConversation.lastModifiedTime < 0
            )
         {
             throw new ArgumentException($"Invalid user conversation {userConversation}", nameof(userConversation));
@@ -87,9 +88,14 @@ public class CosmosConversationStore : IConversationStore
         {
             throw new ArgumentException($"Invalid limit {limit}");
         }
+
+        if (lastSeenConversationTime < 0)
+        {
+            throw new ArgumentException($"Invalid lastSeenConversationTime {lastSeenConversationTime}");
+        }
         
         List<UserConversation> userConversations = new ();
-        string nextContinuationToken = null;
+        string? nextContinuationToken = null;
         
         QueryRequestOptions options = new QueryRequestOptions();
         options.MaxItemCount = limit;

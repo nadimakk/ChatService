@@ -17,6 +17,11 @@ public class ProfileService : IProfileService
 
     public async Task<Profile?> GetProfile(string username)
     {
+        //MAKE SURE THIS CHECK IS CORRECT
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException($"Invalid username {username}");
+        }
         return await _profileStore.GetProfile(username);
     }
     
