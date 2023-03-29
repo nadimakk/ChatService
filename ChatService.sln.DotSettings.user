@@ -3,10 +3,25 @@
 	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/FiltersState/=CodeStyle/@EntryIndexedValue">On</s:String>
 	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/FiltersState/=NamingFilter/@EntryIndexedValue">On</s:String>
 	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/FiltersState/=SpellingFilter/@EntryIndexedValue">On</s:String>
-	<s:String x:Key="/Default/Environment/Highlighting/HighlightingSourceSnapshotLocation/@EntryValue">C:\Users\nadim\AppData\Local\JetBrains\Rider2022.3\resharper-host\temp\Rider\vAny\CoverageData\_ChatService.34854384\Snapshot\snapshot.utdcvr</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=2eb7ee53_002D98e8_002D4fcc_002Da4b0_002D6e3740bc84e9/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="GetUserConversations_Ordered_Successful" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+	
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=2eb7ee53_002D98e8_002D4fcc_002Da4b0_002D6e3740bc84e9/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="GetUserConversations_Ordered_Successful" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;TestAncestor&gt;&#xD;
     &lt;TestId&gt;xUnit::A7808CB8-B561-4939-9B4E-8AC0FD786DC3::net6.0::ChatService.Web.IntegrationTests.CosmosConversationStoreTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::270C3052-C9D2-4EF9-9683-D5E4A4E69733::net6.0::ChatService.Web.Tests.Controllers.ImageControllerTests&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=c0fe63d7_002D3752_002D4833_002D88e0_002De341b0117d15/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="ProfileControllerTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::270C3052-C9D2-4EF9-9683-D5E4A4E69733::net6.0::ChatService.Web.Tests.Controllers.ProfileControllerTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::270C3052-C9D2-4EF9-9683-D5E4A4E69733::net6.0::ChatService.Web.Tests.Services.ProfileServiceTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::A7808CB8-B561-4939-9B4E-8AC0FD786DC3::net6.0::ChatService.Web.IntegrationTests.CosmosMessageStoreTests.AddMessage_Successful&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::A7808CB8-B561-4939-9B4E-8AC0FD786DC3::net6.0::ChatService.Web.IntegrationTests.CosmosMessageStoreTests.AddMessage_InvalidArguments&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::A7808CB8-B561-4939-9B4E-8AC0FD786DC3::net6.0::ChatService.Web.IntegrationTests.CosmosMessageStoreTests&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=d5b6a14e_002D36d2_002D40f7_002Db95c_002Da3b7d6265987/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="CosmosMessageStoreTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::A7808CB8-B561-4939-9B4E-8AC0FD786DC3::net6.0::ChatService.Web.IntegrationTests.CosmosMessageStoreTests&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=da215107_002D8529_002D436c_002D896b_002D16af167896d3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;

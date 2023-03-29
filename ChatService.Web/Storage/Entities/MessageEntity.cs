@@ -5,7 +5,7 @@ namespace ChatService.Web.Storage.Entities;
 public record MessageEntity(
     string partitionKey,
     string id,
-    UnixDateTime UnixTime,
+    long unixTime,
     string senderUsername,
     string text
     );

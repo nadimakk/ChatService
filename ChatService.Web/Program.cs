@@ -15,6 +15,7 @@ builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobS
 builder.Services.AddSingleton<IProfileStore, CosmosProfileStore>();
 builder.Services.AddSingleton<IImageStore, BlobImageStore>();
 builder.Services.AddSingleton<IConversationStore, CosmosConversationStore>();
+builder.Services.AddSingleton<IMessageStore, CosmosMessageStore>();
 
 builder.Services.AddSingleton(sp =>
 {
