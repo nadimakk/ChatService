@@ -20,15 +20,15 @@ public class MessageService : IMessageService
         SendMessageRequest request)
     {
         if (request == null ||
-            string.IsNullOrEmpty(request.MessageId) ||
-            string.IsNullOrEmpty(request.SenderUsername) ||
-            string.IsNullOrEmpty(request.Text)
+            string.IsNullOrWhiteSpace(request.MessageId) ||
+            string.IsNullOrWhiteSpace(request.SenderUsername) ||
+            string.IsNullOrWhiteSpace(request.Text)
            )
         {
             throw new ArgumentException($"Invalid SendMessageRequest {request}.");
         }
 
-        if (string.IsNullOrEmpty(conversationId))
+        if (string.IsNullOrWhiteSpace(conversationId))
         {
             throw new ArgumentException($"Invalid conversationId {conversationId}.");
         }
@@ -84,7 +84,7 @@ public class MessageService : IMessageService
     public async Task<GetMessagesServiceResult> GetMessages(string conversationId, int limit, OrderBy orderBy,
         string? continuationToken, long lastSeenConversationTime)
     {
-        if (string.IsNullOrEmpty(conversationId))
+        if (string.IsNullOrWhiteSpace(conversationId))
         {
             throw new ArgumentException($"Invalid conversationId {conversationId}.");
         }

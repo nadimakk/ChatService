@@ -15,7 +15,13 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
 {
     private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly HttpClient _httpClient;
-    private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
+    private readonly Profile _profile = new Profile
+    {
+        Username = "foobar",
+        FirstName = "Foo",
+        LastName = "Bar",
+        ProfilePictureId = "123"
+    };
     
     public ProfilesControllerTests(WebApplicationFactory<Program> factory)
     {
@@ -103,7 +109,13 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
             .ThrowsAsync(new ArgumentException($"Invalid profile {_profile}"));
         
-        Profile profile = new(username, firstName, lastName, profilePictureId);
+        Profile profile = new Profile
+        {
+            Username = username,
+            FirstName = firstName,
+            LastName = lastName,
+            ProfilePictureId = profilePictureId
+        };
 
         var response = await _httpClient.PostAsJsonAsync("api/Profiles/", profile);
         
@@ -113,7 +125,13 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
     [Fact]
     public async Task PostProfile_InvalidUsername()
     {
-        Profile profile = new("username_with_underscore", "firstName", "lastName", "profilePictureId");
+        Profile profile = new Profile
+        {
+            Username = "username_with_underscore",
+            FirstName = "firstName",
+            LastName = "lastName",
+            ProfilePictureId = "profilePictureId"
+        };
         
         _profileServiceMock.Setup(m => m.AddProfile(profile))
             .ThrowsAsync(new InvalidUsernameException($"Username {profile.Username} is invalid. Usernames cannot have an underscore."));

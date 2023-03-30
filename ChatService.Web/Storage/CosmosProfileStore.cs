@@ -105,11 +105,12 @@ public class CosmosProfileStore : IProfileStore
 
     private static Profile ToProfile(ProfileEntity entity)
     {
-        return new Profile(
-            Username: entity.id,
-            entity.FirstName,
-            entity.LastName,
-            entity.ProfilePictureId
-        );
+        return new Profile
+        {
+            Username = entity.id,
+            FirstName = entity.FirstName,
+            LastName = entity.LastName,
+            ProfilePictureId = entity.ProfilePictureId
+        };
     }
 }

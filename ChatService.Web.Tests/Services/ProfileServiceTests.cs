@@ -15,7 +15,13 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly Mock<IImageStore> _imageStoreMock = new();
     private readonly IProfileService _profileService;
     
-    private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
+    private readonly Profile _profile = new Profile
+    {
+        Username = "foobar",
+        FirstName = "Foo",
+        LastName = "Bar",
+        ProfilePictureId = "123"
+    };
 
     public ProfileServiceTests(WebApplicationFactory<Program> factory)
     {
@@ -83,7 +89,14 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("foobar", "Foo", "Bar"," ")]
     public async Task AddNewProfile_InvalidArgs(string username, string firstName, string lastName, string profilePictureId)
     {
-        Profile profile = new(username, firstName, lastName, profilePictureId);
+        Profile profile = new Profile
+        {
+            Username = username,
+            FirstName = firstName,
+            LastName = lastName,
+            ProfilePictureId = profilePictureId
+        };
+        
         await Assert.ThrowsAsync<ArgumentException>( async () =>  await _profileService.AddProfile(profile));
     }
     
@@ -101,7 +114,14 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AddNewProfile_InvalidUsername()
     {
-        Profile profile = new("username_with_underscore", "firstName", "lastName", "profilePictureId");
+        Profile profile = new Profile
+        {
+            Username = "username_with_underscore",
+            FirstName = "firstName",
+            LastName = "lastName",
+            ProfilePictureId = "profilePictureId"
+        };
+        
         await Assert.ThrowsAsync<InvalidUsernameException>( async () =>  await _profileService.AddProfile(profile));
     }
     

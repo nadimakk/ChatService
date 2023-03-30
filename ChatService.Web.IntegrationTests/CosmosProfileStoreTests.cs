@@ -10,12 +10,13 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
 {
     private readonly IProfileStore _profileStore;
 
-    private readonly Profile _profile = new(
-        Username: Guid.NewGuid().ToString(),
-        FirstName: "Foo",
-        LastName: "Bar",
-        ProfilePictureId: "dummy_id"
-    );
+    private readonly Profile _profile = new Profile
+    {
+        Username = Guid.NewGuid().ToString(),
+        FirstName = "Foo",
+        LastName = "Bar",
+        ProfilePictureId = "dummy_id"
+    };
     
     public Task InitializeAsync()
     {

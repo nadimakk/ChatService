@@ -2,8 +2,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ChatService.Web.Dtos;
 
-public record Profile(
-    [Required] string Username, 
-    [Required] string FirstName, 
-    [Required] string LastName,
-    [Required] string ProfilePictureId);
+public record Profile
+{
+    [Required] public string Username { get; set; }
+    [Required] public string FirstName { get; set; }
+    [Required] public string LastName { get; set; }
+    [Required] public string ProfilePictureId { get; set; }
+}

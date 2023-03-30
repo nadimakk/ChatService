@@ -27,18 +27,17 @@ public class UserConversationService : IUserConversationService
         }
         
         if (request.Participants.Count < 2 ||
-            //TODO:
-            string.IsNullOrEmpty(request.Participants.ElementAt(0)) || //WRITE A TEST TO SEE THE PYTHON THING!!!!!!!!!!!!!!
-            string.IsNullOrEmpty(request.Participants.ElementAt(1)) ||
+            string.IsNullOrWhiteSpace(request.Participants.ElementAt(0)) ||
+            string.IsNullOrWhiteSpace(request.Participants.ElementAt(1)) ||
             request.Participants.ElementAt(0).Equals(request.Participants.ElementAt(1)))
         {
             throw new ArgumentException(
                 $"Invalid participants list ${request.Participants}. There must be 2 unique participant usernames");
         }
         
-        if (string.IsNullOrEmpty(request.FirstMessage.MessageId) ||
-            string.IsNullOrEmpty(request.FirstMessage.SenderUsername) ||
-            string.IsNullOrEmpty(request.FirstMessage.Text))
+        if (string.IsNullOrWhiteSpace(request.FirstMessage.MessageId) ||
+            string.IsNullOrWhiteSpace(request.FirstMessage.SenderUsername) ||
+            string.IsNullOrWhiteSpace(request.FirstMessage.Text))
         {
             throw new ArgumentException($"Invalid FirstMessage {request.FirstMessage}.");
         }
@@ -105,7 +104,7 @@ public class UserConversationService : IUserConversationService
     public async Task<GetUserConversationsServiceResult> GetUserConversations(
         string username, int limit, OrderBy orderBy, string? continuationToken, long lastSeenConversationTime)
     {
-        if (string.IsNullOrEmpty(username))
+        if (string.IsNullOrWhiteSpace(username))
         {
             throw new ArgumentException($"Invalid username {username}.");
         }
