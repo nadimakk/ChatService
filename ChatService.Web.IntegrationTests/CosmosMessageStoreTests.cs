@@ -9,7 +9,7 @@ namespace ChatService.Web.IntegrationTests;
 
 public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
-    private readonly IMessageStore _store;
+    private readonly IMessageStore _messageStore;
 
     private readonly string _conversationId = Guid.NewGuid().ToString();
     
@@ -39,15 +39,15 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     
     public CosmosMessageStoreTests(WebApplicationFactory<Program> factory)
     {
-        _store = factory.Services.GetRequiredService<IMessageStore>();
+        _messageStore = factory.Services.GetRequiredService<IMessageStore>();
     }
 
     [Fact]
     public async Task AddMessage_Successful()
     {
-        await _store.AddMessage(_conversationId, _message1);
+        await _messageStore.AddMessage(_conversationId, _message1);
         
-        Assert.Equal(_message1, await _store.GetMessage(_conversationId, _message1.MessageId));
+        Assert.Equal(_message1, await _messageStore.GetMessage(_conversationId, _message1.MessageId));
     }
 
     [Theory]
@@ -71,15 +71,15 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
             Text = text
         };
 
-        await Assert.ThrowsAsync<ArgumentException>(() => _store.AddMessage(_conversationId, message));
+        await Assert.ThrowsAsync<ArgumentException>(() => _messageStore.AddMessage(_conversationId, message));
     }
     
     [Fact]
     public async Task AddMessage_MessageAlreadyExists()
     {
-        await _store.AddMessage(_conversationId, _message1);
+        await _messageStore.AddMessage(_conversationId, _message1);
         
-        await Assert.ThrowsAsync<MessageExistsException>(() => _store.AddMessage(_conversationId, _message1));
+        await Assert.ThrowsAsync<MessageExistsException>(() => _messageStore.AddMessage(_conversationId, _message1));
     }
 
     [Theory]
@@ -91,13 +91,13 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     [InlineData("conversationId", " ")]
     public async Task GetMessage_InvalidArguments(string conversationId, string messageId)
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _store.GetMessage(conversationId, messageId));
+        await Assert.ThrowsAsync<ArgumentException>(() => _messageStore.GetMessage(conversationId, messageId));
     }
     
     [Fact]
     public async Task GetMessage_MessageNotFound()
     {
-        await Assert.ThrowsAsync<MessageNotFoundException>(() => _store.GetMessage(_conversationId, _message1.MessageId));
+        await Assert.ThrowsAsync<MessageNotFoundException>(() => _messageStore.GetMessage(_conversationId, _message1.MessageId));
     }
 
     [Fact]
@@ -105,14 +105,14 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     {
         await AddMultipleMessages(_conversationId, _message1, _message2, _message3);
 
-        var response = await _store.GetMessages(
+        var response = await _messageStore.GetMessages(
             _conversationId, 1, OrderBy.ASC, null, 1);
         Assert.Equal(1, response.Messages.Count);
 
-        response = await _store.GetMessages(_conversationId, 2, OrderBy.ASC, null, 1);
+        response = await _messageStore.GetMessages(_conversationId, 2, OrderBy.ASC, null, 1);
         Assert.Equal(2, response.Messages.Count);
         
-        response = await _store.GetMessages(_conversationId, 3, OrderBy.ASC, null, 1);
+        response = await _messageStore.GetMessages(_conversationId, 3, OrderBy.ASC, null, 1);
         Assert.Equal(3, response.Messages.Count);
         
         await DeleteMultipleMessages(_conversationId, _message1, _message2, _message3);
@@ -129,7 +129,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
         messagesExpected.Add(_message1);
         messagesExpected.Add(_message2);
 
-        var response = await _store.GetMessages(
+        var response = await _messageStore.GetMessages(
             _conversationId, 10, orderBy, null, 1);
 
         if (orderBy == OrderBy.ASC)
@@ -142,7 +142,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
             Assert.Equal(messagesExpected, response.Messages);
         }
         
-        await _store.DeleteMessage(_conversationId, _message2.MessageId);
+        await _messageStore.DeleteMessage(_conversationId, _message2.MessageId);
     }
 
     [Fact]
@@ -150,17 +150,17 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     {
         await AddMultipleMessages(_conversationId, _message1, _message2, _message3);
 
-        var response = await _store.GetMessages(
+        var response = await _messageStore.GetMessages(
             _conversationId, 1, OrderBy.ASC, null, 1);
         Assert.Equal(_message1, response.Messages.ElementAt(0));
         Assert.NotNull(response.NextContinuationToken);
         
-        response = await _store.GetMessages(
+        response = await _messageStore.GetMessages(
             _conversationId, 1, OrderBy.ASC, response.NextContinuationToken, 1);
         Assert.Equal(_message2, response.Messages.ElementAt(0));
         Assert.NotNull(response.NextContinuationToken);
         
-        response = await _store.GetMessages(
+        response = await _messageStore.GetMessages(
             _conversationId, 1, OrderBy.ASC, response.NextContinuationToken, 1);
         Assert.Equal(_message3, response.Messages.ElementAt(0));
         Assert.Null(response.NextContinuationToken);
@@ -182,7 +182,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
         if(_message2.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message2);
         if(_message3.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message3);
 
-        var response = await _store.GetMessages(
+        var response = await _messageStore.GetMessages(
             _conversationId, 10, OrderBy.ASC, null, lastSeenMessageTime);
         
         Assert.Equal(messagesExpected, response.Messages);
@@ -200,28 +200,28 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     public async Task GetMessages_InvalidArguments(string conversationId, int limit, long lastSeenMessageTime)
     {
         Assert.ThrowsAsync<ArgumentException>(() =>
-            _store.GetMessages(conversationId, limit, OrderBy.ASC, null, lastSeenMessageTime));
+            _messageStore.GetMessages(conversationId, limit, OrderBy.ASC, null, lastSeenMessageTime));
     }
 
     [Fact]
     public async Task ConversationPartitionExists_Exists()
     {
-        await _store.AddMessage(_conversationId, _message1);
+        await _messageStore.AddMessage(_conversationId, _message1);
         
-        Assert.True(await _store.ConversationPartitionExists(_conversationId));
+        Assert.True(await _messageStore.ConversationPartitionExists(_conversationId));
     }
     
     [Fact]
     public async Task ConversationPartitionExists_DoesNotExists()
     {
-        Assert.False(await _store.ConversationPartitionExists(_conversationId));
+        Assert.False(await _messageStore.ConversationPartitionExists(_conversationId));
     }
     
     private async Task AddMultipleMessages(string conversationId, params Message[] messages)
     {
         foreach (Message message in messages)
         {
-            await _store.AddMessage(conversationId, message);
+            await _messageStore.AddMessage(conversationId, message);
         }
     }
     
@@ -229,7 +229,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     {
         foreach (Message message in messages)
         {
-            await _store.DeleteMessage(conversationId, message.MessageId);
+            await _messageStore.DeleteMessage(conversationId, message.MessageId);
         }
     }
     
@@ -240,6 +240,6 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
 
     public async Task DisposeAsync()
     {
-        await _store.DeleteMessage(_conversationId, _message1.MessageId);
+        await _messageStore.DeleteMessage(_conversationId, _message1.MessageId);
     }
 }
