@@ -11,13 +11,13 @@ using Newtonsoft.Json;
 
 namespace ChatService.Web.Tests.Controllers;
 
-public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly HttpClient _httpClient;
     private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
     
-    public ProfileControllerTests(WebApplicationFactory<Program> factory)
+    public ProfilesControllerTests(WebApplicationFactory<Program> factory)
     {
         _httpClient = factory.WithWebHostBuilder(builder =>
         {

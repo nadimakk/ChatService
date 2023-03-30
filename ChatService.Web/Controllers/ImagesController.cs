@@ -1,5 +1,6 @@
 using ChatService.Web.Dtos;
-using ChatService.Web.Storage;
+using ChatService.Web.Exceptions;
+using ChatService.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ChatService.Web.Controllers;
@@ -8,40 +9,49 @@ namespace ChatService.Web.Controllers;
 [Route("api/[controller]")]
 public class ImagesController : ControllerBase
 {
-    private readonly IImageStore _imageStore;
+    private readonly IImageService _imageService;
 
-    public ImagesController(IImageStore imageStore)
+    public ImagesController(IImageService imageService)
     {
-        _imageStore = imageStore;
+        _imageService = imageService;
     }
 
     [HttpPost]
     public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request)
     {
-        string contentType = request.File.ContentType.ToLower();
-        if (contentType != "image/jpg" &&
-            contentType != "image/jpeg" &&
-            contentType != "image/png")
-        {
-            return BadRequest($"Invalid file, must be an image.");
-        }
-
         MemoryStream content = new();
         await request.File.CopyToAsync(content);
-        Image image = new Image(contentType, content);
+        Image image = new Image(request.File.ContentType, content);
+
+        UploadImageServiceResult result;
         
-        string imageId = await _imageStore.UploadImage(image);
-        return CreatedAtAction(nameof(DownloadImage), new { id = imageId }, new UploadImageResponse(imageId));
+        try
+        {
+             result = await _imageService.UploadImage(image);
+        }
+        catch (InvalidImageTypeException e)
+        {
+            return BadRequest(e.Message);
+        }
+        
+        return CreatedAtAction(nameof(DownloadImage), new { imageId = result.ImageId }, 
+            new UploadImageResponse(result.ImageId));
     }
     
-    [HttpGet("{id}")] 
-    public async  Task<IActionResult> DownloadImage(string id)
+    [HttpGet("{imageId}")] 
+    public async  Task<IActionResult> DownloadImage(string imageId)
     {
-        Image? image = await _imageStore.DownloadImage(id);
-        if (image == null)
+        try
         {
-           return NotFound($"An image with id {id} was not found.");
+            return await _imageService.DownloadImage(imageId);
         }
-        return new FileContentResult(image.Content.ToArray(), image.ContentType);
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (ImageNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
     }
 }
