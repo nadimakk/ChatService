@@ -7,5 +7,5 @@ public interface IConversationService
 {
     Task<StartConversationResponse> CreateConversation(StartConversationRequest request);
     Task<GetConversationsResponse> GetConversations(
-        string username, string limit, OrderBy orderBy, string? continuationToken, string lastSeenConversationTime);
+        string username, int limit, OrderBy orderBy, string? continuationToken, long lastSeenConversationTime);
 }

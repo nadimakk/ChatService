@@ -86,12 +86,13 @@ public class CosmosConversationStore : IConversationStore
         }
         if (limit <= 0)
         {
-            throw new ArgumentException($"Invalid limit {limit}");
+            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
         }
 
         if (lastSeenConversationTime < 0)
         {
-            throw new ArgumentException($"Invalid lastSeenConversationTime {lastSeenConversationTime}");
+            throw new ArgumentException(
+                $"Invalid lastSeenConversationTime {lastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
         }
         
         List<UserConversation> userConversations = new ();

@@ -45,10 +45,21 @@ public class ProfileService : IProfileService
         bool imageExists = await _imageStore.ImageExists(profile.profilePictureId);
         if (!imageExists)
         {
-            throw new ImageNotFoundException("Invalid profile picture ID.");
+            throw new ImageNotFoundException(
+                $"Profile picture with ID {profile.profilePictureId} was not found.");
         }
         
         await _profileStore.AddProfile(profile);
+    }
+
+    public async Task<bool> ProfileExists(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException($"Invalid username {username}.");
+
+        }
+        return await _profileStore.ProfileExists(username);
     }
 
     public async Task DeleteProfile(string username)

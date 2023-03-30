@@ -87,26 +87,9 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task<bool> ProfileExists(string username)
     {
-        try
-        {
-            await Container.ReadItemAsync<ProfileEntity>(
-                id: username,
-                partitionKey: new PartitionKey(username),
-                new ItemRequestOptions
-                {
-                    ConsistencyLevel = ConsistencyLevel.Session
-                }
-            );
-            return true;
-        }
-        catch (CosmosException e)
-        {
-            if (e.StatusCode == HttpStatusCode.NotFound)
-            {
-                return false;
-            }
-            throw;
-        }
+        Profile profile = await GetProfile(username);
+
+        return profile != null;
     }
 
     private static ProfileEntity ToEntity(Profile profile)

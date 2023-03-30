@@ -87,12 +87,13 @@ public class CosmosMessageStore : IMessageStore
         }
         if (limit <= 0)
         {
-            throw new ArgumentException($"Invalid limit {limit}");
+            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
         }
 
         if (lastSeenMessageTime < 0)
         {
-            throw new ArgumentException($"Invalid lastSeenMessageTime {lastSeenMessageTime}");
+            throw new ArgumentException(
+                $"Invalid lastSeenMessageTime {lastSeenMessageTime}. lastSeenMessageTime must be greater or equal to 0.");
         }
         
         List<Message> messages = new ();

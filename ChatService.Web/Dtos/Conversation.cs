@@ -5,7 +5,7 @@ namespace ChatService.Web.Dtos;
 
 public record Conversation
 {
-    [Required] private string id { get; set; }
-    [Required] long lastModifiedUnixTime { get; set; }
-    [Required] private Profile recipient { get; set; }
+    [Required] public string id { get; set; }
+    [Required] public long lastModifiedUnixTime { get; set; }
+    [Required] public Profile recipient { get; set; }
 }
