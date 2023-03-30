@@ -1,4 +1,4 @@
 namespace ChatService.Web.Dtos;
 
-public record UploadImageResponse(
+public record UploadImageServiceResult(
     string ImageId);

@@ -8,11 +8,11 @@ using Microsoft.Azure.Cosmos.Linq;
 
 namespace ChatService.Web.Storage;
 
-public class CosmosConversationStore : IConversationStore
+public class CosmosUserConversationStore : IUserConversationStore
 {
     private readonly CosmosClient _cosmosClient;
 
-    public CosmosConversationStore(CosmosClient cosmosClient)
+    public CosmosUserConversationStore(CosmosClient cosmosClient)
     {
         _cosmosClient = cosmosClient;
     }
@@ -22,9 +22,9 @@ public class CosmosConversationStore : IConversationStore
     public async Task CreateUserConversation(UserConversation userConversation)
     {
         if (userConversation == null ||
-            string.IsNullOrWhiteSpace(userConversation.username) ||
-            string.IsNullOrWhiteSpace(userConversation.conversationId) ||
-            userConversation.lastModifiedTime < 0
+            string.IsNullOrWhiteSpace(userConversation.Username) ||
+            string.IsNullOrWhiteSpace(userConversation.ConversationId) ||
+            userConversation.LastModifiedTime < 0
            )
         {
             throw new ArgumentException($"Invalid user conversation {userConversation}", nameof(userConversation));
@@ -32,13 +32,13 @@ public class CosmosConversationStore : IConversationStore
 
         try
         {
-            await Container.CreateItemAsync(ToEntity(userConversation), new PartitionKey(userConversation.username));
+            await Container.CreateItemAsync(ToEntity(userConversation), new PartitionKey(userConversation.Username));
         }
         catch (CosmosException e)
         {
             if (e.StatusCode == HttpStatusCode.Conflict)
             {
-                throw new UserConversationExistsException($"A user conversation with conversation ID {userConversation.conversationId} already exists.");
+                throw new UserConversationExistsException($"A user conversation with conversation ID {userConversation.ConversationId} already exists.");
             }
             throw;
         }
@@ -103,15 +103,15 @@ public class CosmosConversationStore : IConversationStore
 
         IQueryable<UserConversationEntity> query = Container
             .GetItemLinqQueryable<UserConversationEntity>(false, continuationToken, options)
-            .Where(e => e.partitionKey == username && e.lastModifiedTime > lastSeenConversationTime);
+            .Where(e => e.partitionKey == username && e.LastModifiedTime > lastSeenConversationTime);
         
         if (order == OrderBy.ASC)
         {
-            query = query.OrderBy(e => e.lastModifiedTime);
+            query = query.OrderBy(e => e.LastModifiedTime);
         }
         else
         {
-            query = query.OrderByDescending(e => e.lastModifiedTime);
+            query = query.OrderByDescending(e => e.LastModifiedTime);
         }
         
         using (FeedIterator<UserConversationEntity> iterator = query.ToFeedIterator())
@@ -148,18 +148,18 @@ public class CosmosConversationStore : IConversationStore
     private static UserConversationEntity ToEntity(UserConversation userConversation)
     {
         return new UserConversationEntity(
-            partitionKey: userConversation.username,
-            id: userConversation.conversationId,
-            userConversation.lastModifiedTime
+            partitionKey: userConversation.Username,
+            id: userConversation.ConversationId,
+            userConversation.LastModifiedTime
         );
     }
 
     private static UserConversation ToUserConversation(UserConversationEntity entity)
     {
         return new UserConversation {
-            username = entity.partitionKey,
-            conversationId = entity.id,
-            lastModifiedTime = entity.lastModifiedTime
+            Username = entity.partitionKey,
+            ConversationId = entity.id,
+            LastModifiedTime = entity.LastModifiedTime
         };
     }
 }

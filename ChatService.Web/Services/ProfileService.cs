@@ -28,25 +28,25 @@ public class ProfileService : IProfileService
     public async Task AddProfile(Profile profile)
     {
         if (profile == null ||
-            string.IsNullOrWhiteSpace(profile.username) ||
-            string.IsNullOrWhiteSpace(profile.firstName) ||
-            string.IsNullOrWhiteSpace(profile.lastName) ||
-            string.IsNullOrWhiteSpace(profile.profilePictureId)
+            string.IsNullOrWhiteSpace(profile.Username) ||
+            string.IsNullOrWhiteSpace(profile.FirstName) ||
+            string.IsNullOrWhiteSpace(profile.LastName) ||
+            string.IsNullOrWhiteSpace(profile.ProfilePictureId)
            )
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
 
-        if (profile.username.Contains('_'))
+        if (profile.Username.Contains('_'))
         {
-            throw new InvalidUsernameException($"Username {profile.username} is invalid. Usernames cannot have an underscore.");
+            throw new InvalidUsernameException($"Username {profile.Username} is invalid. Usernames cannot have an underscore.");
         }
         
-        bool imageExists = await _imageStore.ImageExists(profile.profilePictureId);
+        bool imageExists = await _imageStore.ImageExists(profile.ProfilePictureId);
         if (!imageExists)
         {
             throw new ImageNotFoundException(
-                $"Profile picture with ID {profile.profilePictureId} was not found.");
+                $"Profile picture with ID {profile.ProfilePictureId} was not found.");
         }
         
         await _profileStore.AddProfile(profile);
@@ -69,7 +69,7 @@ public class ProfileService : IProfileService
         {
             throw new ArgumentException($"Profile with username {username} doesn't exist.");
         }
-        await _imageStore.DeleteImage(profile.profilePictureId);
+        await _imageStore.DeleteImage(profile.ProfilePictureId);
         await _profileStore.DeleteProfile(username);
     }
 }

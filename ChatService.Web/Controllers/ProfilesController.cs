@@ -6,12 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace ChatService.Web.Controllers;
 
 [ApiController]
-[Route("[controller]")]
-public class ProfileController : ControllerBase
+[Route("api/[controller]")]
+public class ProfilesController : ControllerBase
 {
     private readonly IProfileService _profileService;
     
-    public ProfileController(IProfileService profileService)
+    public ProfilesController(IProfileService profileService)
     {
         _profileService = profileService;
     }
@@ -34,7 +34,7 @@ public class ProfileController : ControllerBase
         try
         {
             await _profileService.AddProfile(profile);
-            return CreatedAtAction(nameof(GetProfile), new { username = profile.username }, profile);
+            return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
         }
         catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException || e is InvalidUsernameException)
         {

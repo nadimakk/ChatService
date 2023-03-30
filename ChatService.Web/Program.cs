@@ -14,7 +14,7 @@ builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobS
 // Add services to the container.
 builder.Services.AddSingleton<IProfileStore, CosmosProfileStore>();
 builder.Services.AddSingleton<IImageStore, BlobImageStore>();
-builder.Services.AddSingleton<IConversationStore, CosmosConversationStore>();
+builder.Services.AddSingleton<IUserConversationStore, CosmosUserConversationStore>();
 builder.Services.AddSingleton<IMessageStore, CosmosMessageStore>();
 
 builder.Services.AddSingleton(sp =>
@@ -29,6 +29,8 @@ builder.Services.AddSingleton(sp =>
     }
 );
 builder.Services.AddSingleton<IProfileService, ProfileService>();
+builder.Services.AddSingleton<IMessageService, MessageService>();
+builder.Services.AddSingleton<IUserConversationService, UserConversationService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

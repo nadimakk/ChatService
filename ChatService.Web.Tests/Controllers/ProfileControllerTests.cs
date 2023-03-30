@@ -15,7 +15,13 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
 {
     private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly HttpClient _httpClient;
-    private readonly Profile _profile = new Profile("foobar", "Foo", "Bar", "123");
+    private readonly Profile _profile = new Profile
+    {
+        Username = "foobar",
+        FirstName = "Foo",
+        LastName = "Bar",
+        ProfilePictureId = "123"
+    };
     
     public ProfileControllerTests(WebApplicationFactory<Program> factory)
     {
@@ -31,10 +37,10 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task GetProfile_Success()
     {
-        _profileServiceMock.Setup(m => m.GetProfile(_profile.username))
+        _profileServiceMock.Setup(m => m.GetProfile(_profile.Username))
             .ReturnsAsync(_profile);
 
-        var response = await _httpClient.GetAsync($"/Profile/{_profile.username}");
+        var response = await _httpClient.GetAsync($"api/Profiles/{_profile.Username}");
         
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         
@@ -46,25 +52,25 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task GetProfile_ProfileNotFound()
     {
-        _profileServiceMock.Setup(m => m.GetProfile(_profile.username))
+        _profileServiceMock.Setup(m => m.GetProfile(_profile.Username))
             .ReturnsAsync((Profile?) null);
 
-        var response = await _httpClient.GetAsync($"/Profile/{_profile.username}");
+        var response = await _httpClient.GetAsync($"api/Profiles/{_profile.Username}");
         
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         
         var json = await response.Content.ReadAsStringAsync();
-        Assert.Equal($"A profile with the username {_profile.username} was not found.", json);
+        Assert.Equal($"A profile with the username {_profile.Username} was not found.", json);
     }
 
     [Fact]
     public async Task PostProfile_Success()
     {
-        var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
+        var response = await _httpClient.PostAsJsonAsync("api/Profiles/", _profile);
         
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         
-        Assert.Equal($"http://localhost/Profile/{_profile.username}",
+        Assert.Equal($"http://localhost/api/Profiles/{_profile.Username}",
             response.Headers.GetValues("Location").First());
         
         var json = await response.Content.ReadAsStringAsync();
@@ -78,9 +84,9 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     public async Task PostProfile_UsernameTaken()
     {
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
-            .ThrowsAsync(new UsernameTakenException($"The username {_profile.username} is taken."));
+            .ThrowsAsync(new UsernameTakenException($"The username {_profile.Username} is taken."));
         
-        var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
+        var response = await _httpClient.PostAsJsonAsync("api/Profiles/", _profile);
         
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -103,9 +109,15 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
             .ThrowsAsync(new ArgumentException($"Invalid profile {_profile}"));
         
-        Profile profile = new(username, firstName, lastName, profilePictureId);
+        Profile profile = new Profile
+        {
+            Username = username,
+            FirstName = firstName,
+            LastName = lastName,
+            ProfilePictureId = profilePictureId
+        };
 
-        var response = await _httpClient.PostAsJsonAsync("/Profile", profile);
+        var response = await _httpClient.PostAsJsonAsync("api/Profiles/", profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -113,12 +125,18 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task PostProfile_InvalidUsername()
     {
-        Profile profile = new("username_with_underscore", "firstName", "lastName", "profilePictureId");
+        Profile profile = new Profile
+        {
+            Username = "username_with_underscore",
+            FirstName = "firstName",
+            LastName = "lastName",
+            ProfilePictureId = "profilePictureId"
+        };
         
         _profileServiceMock.Setup(m => m.AddProfile(profile))
-            .ThrowsAsync(new InvalidUsernameException($"Username {profile.username} is invalid. Usernames cannot have an underscore."));
+            .ThrowsAsync(new InvalidUsernameException($"Username {profile.Username} is invalid. Usernames cannot have an underscore."));
 
-        var response = await _httpClient.PostAsJsonAsync("/Profile", profile);
+        var response = await _httpClient.PostAsJsonAsync("api/Profiles/", profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -129,7 +147,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
             .ThrowsAsync(new ImageNotFoundException("Invalid profile picture ID."));
         
-        var response = await _httpClient.PostAsJsonAsync("/Profile/", _profile);
+        var response = await _httpClient.PostAsJsonAsync("api/Profiles/", _profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
