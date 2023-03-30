@@ -1,12 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 
 namespace ChatService.Web.Dtos;
 
 public record Message
 {
-    [Required] public string id { get; set; }
-    [Required] public long unixTime { get; set; }
-    [Required] public string senderUsername { get; set; }
-    [Required] public string text { get; set; }
+    [Required] public string MessageId { get; set; }
+    [Required] public long UnixTime { get; set; }
+    [Required] public string SenderUsername { get; set; }
+    [Required] public string Text { get; set; }
 };

@@ -9,39 +9,39 @@ namespace ChatService.Web.IntegrationTests;
 
 public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
-    private readonly IConversationStore _store;
+    private readonly IUserConversationStore _store;
     
     private static readonly UserConversation _userConversation = new UserConversation
     {
-        username = Guid.NewGuid().ToString(),
-        conversationId = Guid.NewGuid().ToString(),
-        lastModifiedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        Username = Guid.NewGuid().ToString(),
+        ConversationId = Guid.NewGuid().ToString(),
+        LastModifiedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
     };
     
     private readonly UserConversation _userConversation1 = new UserConversation
     {
-        username = _userConversation.username,
-        conversationId = Guid.NewGuid().ToString(),
-        lastModifiedTime = 100
+        Username = _userConversation.Username,
+        ConversationId = Guid.NewGuid().ToString(),
+        LastModifiedTime = 100
     };
     
     private readonly UserConversation _userConversation2 = new UserConversation
     {
-        username = _userConversation.username,
-        conversationId = Guid.NewGuid().ToString(),
-        lastModifiedTime = 200
+        Username = _userConversation.Username,
+        ConversationId = Guid.NewGuid().ToString(),
+        LastModifiedTime = 200
     };
     
     private readonly UserConversation _userConversation3 = new UserConversation
     {
-        username = _userConversation.username,
-        conversationId = Guid.NewGuid().ToString(),
-        lastModifiedTime = 300
+        Username = _userConversation.Username,
+        ConversationId = Guid.NewGuid().ToString(),
+        LastModifiedTime = 300
     };
 
     public CosmosConversationStoreTests(WebApplicationFactory<Program> factory)
     {
-        _store = factory.Services.GetRequiredService<IConversationStore>();
+        _store = factory.Services.GetRequiredService<IUserConversationStore>();
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     {
         await _store.CreateUserConversation(_userConversation);
         
-        Assert.Equal(_userConversation, await _store.GetUserConversation(_userConversation.username, _userConversation.conversationId));
+        Assert.Equal(_userConversation, await _store.GetUserConversation(_userConversation.Username, _userConversation.ConversationId));
     }
     
     [Theory]
@@ -64,9 +64,9 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     {
         UserConversation userConversation = new()
         {
-            username = username,
-            conversationId = conversationId,
-            lastModifiedTime = lastModifiedTime
+            Username = username,
+            ConversationId = conversationId,
+            LastModifiedTime = lastModifiedTime
         };
 
         await Assert.ThrowsAsync<ArgumentException>(
@@ -99,7 +99,7 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     public async Task GetUserConversation_ConversationNotFound()
     {
         await Assert.ThrowsAsync<UserConversationNotFoundException>(
-            () => _store.GetUserConversation(_userConversation.username, _userConversation.conversationId));
+            () => _store.GetUserConversation(_userConversation.Username, _userConversation.ConversationId));
     }
     
     [Fact]
@@ -107,13 +107,13 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     {
         await AddMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
         
-        var response = await _store.GetUserConversations(_userConversation.username, 1, OrderBy.ASC, null, 1);
+        var response = await _store.GetUserConversations(_userConversation.Username, 1, OrderBy.ASC, null, 1);
         Assert.Equal(1, response.UserConversations.Count);
 
-        response = await _store.GetUserConversations(_userConversation.username, 2, OrderBy.ASC, null, 1);
+        response = await _store.GetUserConversations(_userConversation.Username, 2, OrderBy.ASC, null, 1);
         Assert.Equal(2, response.UserConversations.Count);
 
-        response = await _store.GetUserConversations(_userConversation.username, 3, OrderBy.ASC, null, 1);
+        response = await _store.GetUserConversations(_userConversation.Username, 3, OrderBy.ASC, null, 1);
         Assert.Equal(3, response.UserConversations.Count);
         
         await DeleteMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
@@ -130,7 +130,7 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
         await AddMultipleUserConversations(
             _userConversation, _userConversation1, _userConversation2, _userConversation3);
         
-        var response = await _store.GetUserConversations(_userConversation.username, 10, orderBy, null, 0);
+        var response = await _store.GetUserConversations(_userConversation.Username, 10, orderBy, null, 0);
         
         if (orderBy == OrderBy.ASC)
         {
@@ -151,20 +151,20 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
         await AddMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
         
         var response = await _store.GetUserConversations(
-            _userConversation.username, 1, OrderBy.ASC, null, 1);
+            _userConversation.Username, 1, OrderBy.ASC, null, 1);
         
         Assert.Equal(_userConversation1, response.UserConversations.ElementAt(0));
 
         var nextContinuation = response.NextContinuationToken; 
         Assert.NotNull(nextContinuation);
         
-        response = await _store.GetUserConversations(_userConversation.username, 1, OrderBy.ASC, nextContinuation, 1);
+        response = await _store.GetUserConversations(_userConversation.Username, 1, OrderBy.ASC, nextContinuation, 1);
         Assert.Equal(_userConversation2, response.UserConversations.ElementAt(0));
         
         nextContinuation = response.NextContinuationToken; 
         Assert.NotNull(nextContinuation);
         
-        response = await _store.GetUserConversations(_userConversation.username, 1, OrderBy.ASC, nextContinuation, 1);
+        response = await _store.GetUserConversations(_userConversation.Username, 1, OrderBy.ASC, nextContinuation, 1);
         Assert.Equal(_userConversation3, response.UserConversations.ElementAt(0));
         
         nextContinuation = response.NextContinuationToken;
@@ -184,12 +184,12 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
 
         List<UserConversation> userConversationsExpected = new();
 
-        if(_userConversation1.lastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation1); }
-        if(_userConversation2.lastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation2);}
-        if(_userConversation3.lastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation3);}
-        if(_userConversation.lastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation);}
+        if(_userConversation1.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation1); }
+        if(_userConversation2.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation2);}
+        if(_userConversation3.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation3);}
+        if(_userConversation.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation);}
         
-        var response = await _store.GetUserConversations(_userConversation.username, 10, OrderBy.ASC, null, lastSeenConversationTime);
+        var response = await _store.GetUserConversations(_userConversation.Username, 10, OrderBy.ASC, null, lastSeenConversationTime);
         
         Assert.Equal(userConversationsExpected, response.UserConversations);
 
@@ -233,7 +233,7 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     {
         foreach (UserConversation userConversation in userConversations)
         {
-            await _store.DeleteUserConversation(userConversation.username, userConversation.conversationId);
+            await _store.DeleteUserConversation(userConversation.Username, userConversation.ConversationId);
         }
     }
 
@@ -244,6 +244,6 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
 
     public async Task DisposeAsync()
     {
-        await _store.DeleteUserConversation(_userConversation.username, _userConversation.conversationId);
+        await _store.DeleteUserConversation(_userConversation.Username, _userConversation.ConversationId);
     }
 }

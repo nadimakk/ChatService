@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace ChatService.Web.Controllers;
 
 [ApiController]
-[Route("[controller]")]
-public class ImageController : ControllerBase
+[Route("api/[controller]")]
+public class ImagesController : ControllerBase
 {
     private readonly IImageStore _imageStore;
 
-    public ImageController(IImageStore imageStore)
+    public ImagesController(IImageStore imageStore)
     {
         _imageStore = imageStore;
     }

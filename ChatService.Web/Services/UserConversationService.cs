@@ -5,17 +5,17 @@ using ChatService.Web.Storage;
 
 namespace ChatService.Web.Services;
 
-public class ConversationService : IConversationService
+public class UserConversationService : IUserConversationService
 {
 
     private readonly IMessageService _messageService;
-    private readonly IConversationStore _conversationStore;
+    private readonly IUserConversationStore _userConversationStore;
     private readonly IProfileService _profileService;
 
-    public ConversationService(IMessageService messageService, IConversationStore conversationStore, IProfileService profileService)
+    public UserConversationService(IMessageService messageService, IUserConversationStore userConversationStore, IProfileService profileService)
     {
         _messageService = messageService;
-        _conversationStore = conversationStore;
+        _userConversationStore = userConversationStore;
         _profileService = profileService;
     }
 
@@ -26,25 +26,25 @@ public class ConversationService : IConversationService
             throw new ArgumentException($"StartConversationRequest is null.");
         }
         
-        if (request.participants.Count < 2 ||
+        if (request.Participants.Count < 2 ||
             //TODO:
-            string.IsNullOrEmpty(request.participants.ElementAt(0)) || //WRITE A TEST TO SEE THE PYTHON THING!!!!!!!!!!!!!!
-            string.IsNullOrEmpty(request.participants.ElementAt(1)) ||
-            request.participants.ElementAt(0).Equals(request.participants.ElementAt(1)))
+            string.IsNullOrEmpty(request.Participants.ElementAt(0)) || //WRITE A TEST TO SEE THE PYTHON THING!!!!!!!!!!!!!!
+            string.IsNullOrEmpty(request.Participants.ElementAt(1)) ||
+            request.Participants.ElementAt(0).Equals(request.Participants.ElementAt(1)))
         {
             throw new ArgumentException(
-                $"Invalid participants list ${request.participants}. There must be 2 unique participant usernames");
+                $"Invalid participants list ${request.Participants}. There must be 2 unique participant usernames");
         }
         
-        if (string.IsNullOrEmpty(request.firstMessage.id) ||
-            string.IsNullOrEmpty(request.firstMessage.SenderUsername) ||
-            string.IsNullOrEmpty(request.firstMessage.text))
+        if (string.IsNullOrEmpty(request.FirstMessage.MessageId) ||
+            string.IsNullOrEmpty(request.FirstMessage.SenderUsername) ||
+            string.IsNullOrEmpty(request.FirstMessage.Text))
         {
-            throw new ArgumentException($"Invalid FirstMessage {request.firstMessage}.");
+            throw new ArgumentException($"Invalid FirstMessage {request.FirstMessage}.");
         }
 
-        string username1 = request.participants.ElementAt(0);
-        string username2 = request.participants.ElementAt(1);
+        string username1 = request.Participants.ElementAt(0);
+        string username2 = request.Participants.ElementAt(1);
         
         if (!await _profileService.ProfileExists(username1))
         {
@@ -72,37 +72,37 @@ public class ConversationService : IConversationService
         ////////////// MOVED TO message servicve -- make sure all gucci
         SendMessageRequest sendMessageRequest = new SendMessageRequest
         {
-            id = request.firstMessage.id,
-            SenderUsername = request.firstMessage.SenderUsername,
-            text = request.firstMessage.text
+            MessageId = request.FirstMessage.MessageId,
+            SenderUsername = request.FirstMessage.SenderUsername,
+            Text = request.FirstMessage.Text
         };
-        await _messageService.AddMessage(conversationId, true, sendMessageRequest);
+        await _messageService.AddFirstMessage(conversationId, sendMessageRequest);
         //////////////////////////////////////////////////////////
         
         UserConversation userConversation1 = new UserConversation
         {
-            username = username1,
-            conversationId = conversationId,
-            lastModifiedTime = unixTimeNow
+            Username = username1,
+            ConversationId = conversationId,
+            LastModifiedTime = unixTimeNow
         };
-        await _conversationStore.CreateUserConversation(userConversation1);
+        await _userConversationStore.CreateUserConversation(userConversation1);
         
         UserConversation userConversation2 = new UserConversation
         {
-            username = username2,
-            conversationId = conversationId,
-            lastModifiedTime = unixTimeNow
+            Username = username2,
+            ConversationId = conversationId,
+            LastModifiedTime = unixTimeNow
         };
-        await _conversationStore.CreateUserConversation(userConversation2);
+        await _userConversationStore.CreateUserConversation(userConversation2);
 
         return new StartConversationResponse
         {
-            Id = conversationId,
+            ConversationId = conversationId,
             CreatedUnixTime = unixTimeNow
         };
     }
 
-    public async Task<GetConversationsResponse> GetConversations(
+    public async Task<GetUserConversationsServiceResult> GetUserConversations(
         string username, int limit, OrderBy orderBy, string? continuationToken, long lastSeenConversationTime)
     {
         if (string.IsNullOrEmpty(username))
@@ -121,15 +121,20 @@ public class ConversationService : IConversationService
                 $"Invalid lastSeenConversationTime {lastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
         }
 
-        var result = await _conversationStore.GetUserConversations(
+        if (!await _profileService.ProfileExists(username))
+        {
+            throw new UserNotFoundException($"User {username} was not found.");
+        }
+        
+        var result = await _userConversationStore.GetUserConversations(
             username, limit, orderBy, continuationToken, lastSeenConversationTime);
 
         List<Conversation> conversations = await UserConversationsToConversations(result.UserConversations);
         
-        return new GetConversationsResponse
+        return new GetUserConversationsServiceResult
         {
-            conversations = conversations,
-            nextContinuationToken = result.NextContinuationToken
+            Conversations = conversations,
+            NextContinuationToken = result.NextContinuationToken
         };
     }
 
@@ -139,10 +144,10 @@ public class ConversationService : IConversationService
         
         foreach (UserConversation userConversation in userConversations)
         {
-            string[] usernames = userConversation.conversationId.Split('_');
+            string[] usernames = userConversation.ConversationId.Split('_');
             string recipientUsername;
 
-            if (usernames[0].Equals(userConversation.username))
+            if (usernames[0].Equals(userConversation.Username))
             {
                 recipientUsername = usernames[1];
             }
@@ -155,9 +160,9 @@ public class ConversationService : IConversationService
 
             Conversation conversation = new Conversation
             {
-                id = userConversation.conversationId,
-                lastModifiedUnixTime = userConversation.lastModifiedTime,
-                recipient = recipientProfile
+                ConversationId = userConversation.ConversationId,
+                LastModifiedUnixTime = userConversation.LastModifiedTime,
+                Recipient = recipientProfile
             };
             
             conversations.Add(conversation);

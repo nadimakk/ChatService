@@ -11,10 +11,10 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     private readonly IProfileStore _store;
 
     private readonly Profile _profile = new(
-        username: Guid.NewGuid().ToString(),
-        firstName: "Foo",
-        lastName: "Bar",
-        profilePictureId: "dummy_id"
+        Username: Guid.NewGuid().ToString(),
+        FirstName: "Foo",
+        LastName: "Bar",
+        ProfilePictureId: "dummy_id"
     );
     
     public Task InitializeAsync()
@@ -24,7 +24,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
 
     public async Task DisposeAsync()
     {
-        await _store.DeleteProfile(_profile.username);
+        await _store.DeleteProfile(_profile.Username);
     }
 
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
@@ -36,7 +36,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     public async Task AddNewProfile_Success()
     {
         await _store.AddProfile(_profile);
-        Assert.Equal(_profile, await _store.GetProfile(_profile.username));
+        Assert.Equal(_profile, await _store.GetProfile(_profile.Username));
     }
 
     [Theory]
@@ -74,28 +74,28 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task GetNonExistingProfile()
     {
-        Assert.Null(await _store.GetProfile(_profile.username));
+        Assert.Null(await _store.GetProfile(_profile.Username));
     }
 
     [Fact]
     public async Task DeleteProfile()
     {
         await _store.AddProfile(_profile);
-        Assert.Equal(_profile, await _store.GetProfile(_profile.username));
-        await _store.DeleteProfile(_profile.username);
-        Assert.Null(await _store.GetProfile(_profile.username));
+        Assert.Equal(_profile, await _store.GetProfile(_profile.Username));
+        await _store.DeleteProfile(_profile.Username);
+        Assert.Null(await _store.GetProfile(_profile.Username));
     }
     
     [Fact]
     public async Task ProfileExists_Exists()
     {
         await _store.AddProfile(_profile);
-        Assert.True(await _store.ProfileExists(_profile.username));
+        Assert.True(await _store.ProfileExists(_profile.Username));
     }
     
     [Fact]
     public async Task ProfileExists_DoesNotExist()
     {
-        Assert.False(await _store.ProfileExists(_profile.username));
+        Assert.False(await _store.ProfileExists(_profile.Username));
     }
 }

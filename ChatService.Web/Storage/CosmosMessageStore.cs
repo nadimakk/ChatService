@@ -22,10 +22,10 @@ public class CosmosMessageStore : IMessageStore
     public async Task AddMessage(string conversationId, Message message)
     {
         if (message == null ||
-            string.IsNullOrWhiteSpace(message.id) ||
-            string.IsNullOrWhiteSpace(message.senderUsername) ||
-            string.IsNullOrWhiteSpace(message.text) ||
-            message.unixTime < 0
+            string.IsNullOrWhiteSpace(message.MessageId) ||
+            string.IsNullOrWhiteSpace(message.SenderUsername) ||
+            string.IsNullOrWhiteSpace(message.Text) ||
+            message.UnixTime < 0
            )
         {
             throw new ArgumentException($"Invalid message {message}", nameof(message));
@@ -39,7 +39,7 @@ public class CosmosMessageStore : IMessageStore
         {
             if (e.StatusCode == HttpStatusCode.Conflict)
             {
-                throw new MessageExistsException($"A message with ID {message.id} already exists.");
+                throw new MessageExistsException($"A message with ID {message.MessageId} already exists.");
             }
             throw;
         }
@@ -104,15 +104,15 @@ public class CosmosMessageStore : IMessageStore
 
         IQueryable<MessageEntity> query = Container
             .GetItemLinqQueryable<MessageEntity>(false, continuationToken, options)
-            .Where(e => e.partitionKey == conversationId && e.unixTime > lastSeenMessageTime);
+            .Where(e => e.partitionKey == conversationId && e.UnixTime > lastSeenMessageTime);
         
         if (order == OrderBy.ASC)
         {
-            query = query.OrderBy(e => e.unixTime);
+            query = query.OrderBy(e => e.UnixTime);
         }
         else
         {
-            query = query.OrderByDescending(e => e.unixTime);
+            query = query.OrderByDescending(e => e.UnixTime);
         }
         
         using (FeedIterator<MessageEntity> iterator = query.ToFeedIterator())
@@ -158,10 +158,10 @@ public class CosmosMessageStore : IMessageStore
     {
         return new MessageEntity(
             partitionKey: conversationId,
-            id: message.id,
-            message.unixTime,
-            message.senderUsername,
-            message.text
+            id: message.MessageId,
+            message.UnixTime,
+            message.SenderUsername,
+            message.Text
         );
     }
 
@@ -169,10 +169,10 @@ public class CosmosMessageStore : IMessageStore
     {
         return new Message
         {
-            id = entity.id,
-            unixTime = entity.unixTime,
-            senderUsername = entity.senderUsername,
-            text = entity.text
+            MessageId = entity.id,
+            UnixTime = entity.UnixTime,
+            SenderUsername = entity.SenderUsername,
+            Text = entity.Text
         };
     }
 }

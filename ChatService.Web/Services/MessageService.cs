@@ -9,23 +9,20 @@ public class MessageService : IMessageService
 {
     private readonly IMessageStore _messageStore;
     private readonly IProfileService _profileService;
-    private readonly IConversationService _conversationService;
 
-    public MessageService(IMessageStore messageStore, IProfileService profileService,
-        IConversationService conversationService)
+    public MessageService(IMessageStore messageStore, IProfileService profileService)
     {
         _messageStore = messageStore;
         _profileService = profileService;
-        _conversationService = conversationService;
     }
 
     public async Task<SendMessageResponse> AddMessage(string conversationId, bool isFirstMessage,
         SendMessageRequest request)
     {
         if (request == null ||
-            string.IsNullOrEmpty(request.id) ||
+            string.IsNullOrEmpty(request.MessageId) ||
             string.IsNullOrEmpty(request.SenderUsername) ||
-            string.IsNullOrEmpty(request.text)
+            string.IsNullOrEmpty(request.Text)
            )
         {
             throw new ArgumentException($"Invalid SendMessageRequest {request}.");
@@ -54,7 +51,7 @@ public class MessageService : IMessageService
         //if this is NOT the first message, check if the conversation already exists
         if (!isFirstMessage && !await _messageStore.ConversationPartitionExists(conversationId))
         {
-            throw new ConversationPartitionDoesNotExist(
+            throw new ConversationDoesNotExistException(
                 $"A conversation partition with the conversationId {conversationId} does not exist.");
         }
         //if it IS the first message, then its ok if the conversation does not exist as the partition will be created
@@ -64,10 +61,10 @@ public class MessageService : IMessageService
 
         Message message = new Message
         {
-            id = request.id,
-            unixTime = unixTimeNow,
-            senderUsername = request.SenderUsername,
-            text = request.text
+            MessageId = request.MessageId,
+            UnixTime = unixTimeNow,
+            SenderUsername = request.SenderUsername,
+            Text = request.Text
         };
 
         await _messageStore.AddMessage(conversationId, message);
@@ -79,7 +76,12 @@ public class MessageService : IMessageService
         };
     }
 
-    public async Task<GetMessagesResponse> GetMessages(string conversationId, int limit, OrderBy orderBy,
+    public async Task<SendMessageResponse> AddFirstMessage(string conversationId, SendMessageRequest request)
+    {
+        return await AddMessage(conversationId, true, request);
+    }
+    
+    public async Task<GetMessagesServiceResult> GetMessages(string conversationId, int limit, OrderBy orderBy,
         string? continuationToken, long lastSeenConversationTime)
     {
         if (string.IsNullOrEmpty(conversationId))
@@ -98,13 +100,19 @@ public class MessageService : IMessageService
                 $"Invalid lastSeenConversationTime {lastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
         }
 
+        if (!await _messageStore.ConversationPartitionExists(conversationId))
+        {
+            throw new ConversationDoesNotExistException(
+                $"A conversation partition with the conversationId {conversationId} does not exist.");
+        }
+        
         var result = await _messageStore.GetMessages(
             conversationId, limit, orderBy, continuationToken, lastSeenConversationTime);
 
-        return new GetMessagesResponse
+        return new GetMessagesServiceResult
         {
-            messages = result.Messages,
-            nextContinuationToken = result.NextContinuationToken
+            Messages = result.Messages,
+            NextContinuationToken = result.NextContinuationToken
         };
     }
 }

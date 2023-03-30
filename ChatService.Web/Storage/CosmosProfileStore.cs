@@ -20,10 +20,10 @@ public class CosmosProfileStore : IProfileStore
     public async Task AddProfile(Profile profile)
     {
         if (profile == null ||
-            string.IsNullOrWhiteSpace(profile.username) ||
-            string.IsNullOrWhiteSpace(profile.firstName) ||
-            string.IsNullOrWhiteSpace(profile.lastName) ||
-            string.IsNullOrWhiteSpace(profile.profilePictureId)
+            string.IsNullOrWhiteSpace(profile.Username) ||
+            string.IsNullOrWhiteSpace(profile.FirstName) ||
+            string.IsNullOrWhiteSpace(profile.LastName) ||
+            string.IsNullOrWhiteSpace(profile.ProfilePictureId)
            )
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
@@ -31,13 +31,13 @@ public class CosmosProfileStore : IProfileStore
 
         try
         {
-            await Container.CreateItemAsync(ToEntity(profile), new PartitionKey(profile.username));
+            await Container.CreateItemAsync(ToEntity(profile), new PartitionKey(profile.Username));
         }
         catch (CosmosException e)
         {
             if (e.StatusCode == HttpStatusCode.Conflict)
             {
-                throw new UsernameTakenException($"A profile with username {profile.username} already exists.");
+                throw new UsernameTakenException($"A profile with username {profile.Username} already exists.");
             }
             throw;
         }
@@ -95,21 +95,21 @@ public class CosmosProfileStore : IProfileStore
     private static ProfileEntity ToEntity(Profile profile)
     {
         return new ProfileEntity(
-            partitionKey: profile.username,
-            id: profile.username,
-            profile.firstName,
-            profile.lastName,
-            profile.profilePictureId
+            partitionKey: profile.Username,
+            id: profile.Username,
+            profile.FirstName,
+            profile.LastName,
+            profile.ProfilePictureId
         );
     }
 
     private static Profile ToProfile(ProfileEntity entity)
     {
         return new Profile(
-            username: entity.id,
-            entity.firstName,
-            entity.lastName,
-            entity.profilePictureId
+            Username: entity.id,
+            entity.FirstName,
+            entity.LastName,
+            entity.ProfilePictureId
         );
     }
 }

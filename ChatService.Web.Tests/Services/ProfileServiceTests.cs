@@ -32,10 +32,10 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task GetProfile_Success()
     {
-        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+        _profileStoreMock.Setup(m => m.GetProfile(_profile.Username))
             .ReturnsAsync(_profile);
 
-        var receivedProfile = await _profileService.GetProfile(_profile.username);
+        var receivedProfile = await _profileService.GetProfile(_profile.Username);
         
         Assert.Equal(_profile, receivedProfile);
     }
@@ -52,9 +52,9 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AddNewProfile_Success()
     {
-        _profileStoreMock.Setup(m => m.ProfileExists(_profile.username))
+        _profileStoreMock.Setup(m => m.ProfileExists(_profile.Username))
             .ReturnsAsync(false);
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.ProfilePictureId))
             .ReturnsAsync(true);
 
         await _profileService.AddProfile(_profile);
@@ -90,10 +90,10 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AddNewProfile_UsernameTaken()
     {
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.ProfilePictureId))
             .ReturnsAsync(true);
         _profileStoreMock.Setup(m => m.AddProfile(_profile))
-            .ThrowsAsync(new UsernameTakenException($"A profile with username {_profile.username} already exists."));
+            .ThrowsAsync(new UsernameTakenException($"A profile with username {_profile.Username} already exists."));
 
         await Assert.ThrowsAsync<UsernameTakenException>( async () =>  await _profileService.AddProfile(_profile));
     }
@@ -108,7 +108,7 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AddNewProfile_ProfilePictureNotFound()
     {
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.profilePictureId))
+        _imageStoreMock.Setup(m => m.ImageExists(_profile.ProfilePictureId))
             .ReturnsAsync(false);
 
         await Assert.ThrowsAsync<ImageNotFoundException>( async () =>  await _profileService.AddProfile(_profile));
@@ -117,22 +117,22 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task DeleteProfile_Success()
     {
-        _profileStoreMock.Setup(m => m.GetProfile(_profile.username))
+        _profileStoreMock.Setup(m => m.GetProfile(_profile.Username))
             .ReturnsAsync(_profile);
 
-        await _profileService.DeleteProfile(_profile.username);
+        await _profileService.DeleteProfile(_profile.Username);
         
-        _imageStoreMock.Verify(m => m.DeleteImage(_profile.profilePictureId), Times.Once);
-        _profileStoreMock.Verify(m => m.DeleteProfile(_profile.username), Times.Once);
+        _imageStoreMock.Verify(m => m.DeleteImage(_profile.ProfilePictureId), Times.Once);
+        _profileStoreMock.Verify(m => m.DeleteProfile(_profile.Username), Times.Once);
     }
     
     [Fact]
     public async Task DeleteProfile_ProfileNotFound()
     {
         await Assert.ThrowsAsync<ArgumentException>(
-            async () => await _profileService.DeleteProfile(_profile.username));
+            async () => await _profileService.DeleteProfile(_profile.Username));
         
-        _imageStoreMock.Verify(m => m.DeleteImage(_profile.profilePictureId), Times.Never);
-        _profileStoreMock.Verify(m => m.DeleteProfile(_profile.username), Times.Never);
+        _imageStoreMock.Verify(m => m.DeleteImage(_profile.ProfilePictureId), Times.Never);
+        _profileStoreMock.Verify(m => m.DeleteProfile(_profile.Username), Times.Never);
     }
 }

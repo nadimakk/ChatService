@@ -2,8 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ChatService.Web.Dtos;
 
-public record GetMessagesResponse
+public record GetUserConversationsResponse
 {
-    [Required] public List<Message> Messages { get; set; }
+    [Required] public List<Conversation> Conversations { get; set; }
     [Required] public string NextUri { get; set; }
 }

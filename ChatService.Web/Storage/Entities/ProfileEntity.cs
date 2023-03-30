@@ -3,6 +3,6 @@ namespace ChatService.Web.Storage.Entities;
 public record ProfileEntity(
     string partitionKey,
     string id,
-    string firstName,
-    string lastName,
-    string profilePictureId);
+    string FirstName,
+    string LastName,
+    string ProfilePictureId);

@@ -40,11 +40,11 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(image.ContentType);
         _content.Add(fileContent,"File", "image.jpeg");
         
-        var response = await _httpClient.PostAsync("/Image", _content);
+        var response = await _httpClient.PostAsync("api/Images/", _content);
         
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         
-        Assert.Equal($"http://localhost/Image/{imageId}", response.Headers.GetValues("Location").First());
+        Assert.Equal($"http://localhost/api/Images/{imageId}", response.Headers.GetValues("Location").First());
 
         var json = await response.Content.ReadAsStringAsync();
         var receivedUploadImageResponse = JsonConvert.DeserializeObject<UploadImageResponse>(json);
@@ -54,7 +54,7 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
     [Fact]
     public async Task UploadImage_MissingFile()
     {
-        var response = await _httpClient.PostAsync("/Image", _content);
+        var response = await _httpClient.PostAsync("api/Images/", _content);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         
@@ -68,7 +68,7 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
         _content.Add(fileContent,"File", "file.txt");
         
-        var response = await _httpClient.PostAsync("/Image", _content);
+        var response = await _httpClient.PostAsync("api/Images/", _content);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -88,7 +88,7 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
         _imageStoreMock.Setup(m => m.DownloadImage(imageId))
             .ReturnsAsync(image);
 
-        var response = await _httpClient.GetAsync($"/Image/{imageId}");
+        var response = await _httpClient.GetAsync($"api/Images/{imageId}");
         
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         
@@ -104,7 +104,7 @@ public class ImageControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         var imageId = Guid.NewGuid().ToString();
         
-        var response = await _httpClient.GetAsync($"/Image/{imageId}");
+        var response = await _httpClient.GetAsync($"api/Images/{imageId}");
         
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

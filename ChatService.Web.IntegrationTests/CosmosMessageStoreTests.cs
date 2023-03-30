@@ -15,26 +15,26 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     
     private readonly Message _message1 = new Message
     {
-        id = Guid.NewGuid().ToString(),
-        unixTime = 100,
-        senderUsername = Guid.NewGuid().ToString(),
-        text = "text of _message1"
+        MessageId = Guid.NewGuid().ToString(),
+        UnixTime = 100,
+        SenderUsername = Guid.NewGuid().ToString(),
+        Text = "text of _message1"
     };
     
     private readonly Message _message2 = new Message
     {
-        id = Guid.NewGuid().ToString(),
-        unixTime = 200,
-        senderUsername = Guid.NewGuid().ToString(),
-        text = "text of _message2"
+        MessageId = Guid.NewGuid().ToString(),
+        UnixTime = 200,
+        SenderUsername = Guid.NewGuid().ToString(),
+        Text = "text of _message2"
     };
     
     private readonly Message _message3 = new Message
     {
-        id = Guid.NewGuid().ToString(),
-        unixTime = 300,
-        senderUsername = Guid.NewGuid().ToString(),
-        text = "text of _message3"
+        MessageId = Guid.NewGuid().ToString(),
+        UnixTime = 300,
+        SenderUsername = Guid.NewGuid().ToString(),
+        Text = "text of _message3"
     };
     
     public CosmosMessageStoreTests(WebApplicationFactory<Program> factory)
@@ -47,7 +47,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     {
         await _store.AddMessage(_conversationId, _message1);
         
-        Assert.Equal(_message1, await _store.GetMessage(_conversationId, _message1.id));
+        Assert.Equal(_message1, await _store.GetMessage(_conversationId, _message1.MessageId));
     }
 
     [Theory]
@@ -65,10 +65,10 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     {
         Message message = new Message
         {
-            id = id,
-            unixTime = unixTime,
-            senderUsername = senderUsername,
-            text = text
+            MessageId = id,
+            UnixTime = unixTime,
+            SenderUsername = senderUsername,
+            Text = text
         };
 
         await Assert.ThrowsAsync<ArgumentException>(() => _store.AddMessage(_conversationId, message));
@@ -97,7 +97,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     [Fact]
     public async Task GetMessage_MessageNotFound()
     {
-        await Assert.ThrowsAsync<MessageNotFoundException>(() => _store.GetMessage(_conversationId, _message1.id));
+        await Assert.ThrowsAsync<MessageNotFoundException>(() => _store.GetMessage(_conversationId, _message1.MessageId));
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
             Assert.Equal(messagesExpected, response.Messages);
         }
         
-        await _store.DeleteMessage(_conversationId, _message2.id);
+        await _store.DeleteMessage(_conversationId, _message2.MessageId);
     }
 
     [Fact]
@@ -178,9 +178,9 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
         await AddMultipleMessages(_conversationId, _message1, _message2, _message3);
 
         List<Message> messagesExpected = new();
-        if(_message1.unixTime > lastSeenMessageTime) messagesExpected.Add(_message1);
-        if(_message2.unixTime > lastSeenMessageTime) messagesExpected.Add(_message2);
-        if(_message3.unixTime > lastSeenMessageTime) messagesExpected.Add(_message3);
+        if(_message1.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message1);
+        if(_message2.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message2);
+        if(_message3.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message3);
 
         var response = await _store.GetMessages(
             _conversationId, 10, OrderBy.ASC, null, lastSeenMessageTime);
@@ -229,7 +229,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     {
         foreach (Message message in messages)
         {
-            await _store.DeleteMessage(conversationId, message.id);
+            await _store.DeleteMessage(conversationId, message.MessageId);
         }
     }
     
@@ -240,6 +240,6 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
 
     public async Task DisposeAsync()
     {
-        await _store.DeleteMessage(_conversationId, _message1.id);
+        await _store.DeleteMessage(_conversationId, _message1.MessageId);
     }
 }

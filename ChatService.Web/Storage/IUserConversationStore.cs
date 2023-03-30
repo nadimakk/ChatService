@@ -4,7 +4,7 @@ using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 
 namespace ChatService.Web.Storage;
 
-public interface IConversationStore
+public interface IUserConversationStore
 {
     Task CreateUserConversation(UserConversation userConversation);
     Task<UserConversation> GetUserConversation(string username, string conversationId);
