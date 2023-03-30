@@ -203,6 +203,20 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
             _store.GetMessages(conversationId, limit, OrderBy.ASC, null, lastSeenMessageTime));
     }
 
+    [Fact]
+    public async Task ConversationPartitionExists_Exists()
+    {
+        await _store.AddMessage(_conversationId, _message1);
+        
+        Assert.True(await _store.ConversationPartitionExists(_conversationId));
+    }
+    
+    [Fact]
+    public async Task ConversationPartitionExists_DoesNotExists()
+    {
+        Assert.False(await _store.ConversationPartitionExists(_conversationId));
+    }
+    
     private async Task AddMultipleMessages(string conversationId, params Message[] messages)
     {
         foreach (Message message in messages)

@@ -8,13 +8,13 @@ namespace ChatService.Web.Services;
 public class ConversationService : IConversationService
 {
 
-    private readonly IMessageStore _messageStore;
+    private readonly IMessageService _messageService;
     private readonly IConversationStore _conversationStore;
     private readonly IProfileService _profileService;
 
-    public ConversationService(IMessageStore messageStore, IConversationStore conversationStore, IProfileService profileService)
+    public ConversationService(IMessageService messageService, IConversationStore conversationStore, IProfileService profileService)
     {
-        _messageStore = messageStore;
+        _messageService = messageService;
         _conversationStore = conversationStore;
         _profileService = profileService;
     }
@@ -43,7 +43,6 @@ public class ConversationService : IConversationService
             throw new ArgumentException($"Invalid FirstMessage {request.firstMessage}.");
         }
 
-        string conversationId;
         string username1 = request.participants.ElementAt(0);
         string username2 = request.participants.ElementAt(1);
         
@@ -55,6 +54,8 @@ public class ConversationService : IConversationService
         {
             throw new ProfileNotFoundException($"A profile with the username {username2} was not found.");
         }
+
+        string conversationId;
 
         if (username1.CompareTo(username2) < 0)
         {
@@ -68,15 +69,14 @@ public class ConversationService : IConversationService
         long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         
         //TODO:
-        ////////////// MOVE THIS TO MESSAGE SERVICE and call it from here
-        Message message = new Message
+        ////////////// MOVED TO message servicve -- make sure all gucci
+        SendMessageRequest sendMessageRequest = new SendMessageRequest
         {
             id = request.firstMessage.id,
-            unixTime = unixTimeNow,
-            senderUsername = request.firstMessage.SenderUsername,
+            SenderUsername = request.firstMessage.SenderUsername,
             text = request.firstMessage.text
         };
-        await _messageStore.AddMessage(conversationId, message);
+        await _messageService.AddMessage(conversationId, true, sendMessageRequest);
         //////////////////////////////////////////////////////////
         
         UserConversation userConversation1 = new UserConversation

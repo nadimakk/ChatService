@@ -128,6 +128,14 @@ public class CosmosMessageStore : IMessageStore
         return (messages, nextContinuationToken);
     }
 
+    public async Task<bool> ConversationPartitionExists(string conversationId)
+    {
+        var response = await GetMessages(
+            conversationId, 1, OrderBy.ASC, null, 0);
+        
+        return (response.Messages.Count > 0);
+    }
+    
     public async Task DeleteMessage(string conversationId, string messageId)
     {
         try
