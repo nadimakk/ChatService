@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 
 namespace ChatService.Web.Tests.Controllers;
 
-public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly HttpClient _httpClient;
@@ -23,7 +23,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
         ProfilePictureId = "123"
     };
     
-    public ProfileControllerTests(WebApplicationFactory<Program> factory)
+    public ProfilesControllerTests(WebApplicationFactory<Program> factory)
     {
         _httpClient = factory.WithWebHostBuilder(builder =>
         {
