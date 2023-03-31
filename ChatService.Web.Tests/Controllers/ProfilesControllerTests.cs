@@ -53,7 +53,7 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
     public async Task GetProfile_ProfileNotFound()
     {
         _profileServiceMock.Setup(m => m.GetProfile(_profile.Username))
-            .ReturnsAsync((Profile?) null);
+            .ThrowsAsync(new ProfileNotFoundException($"A profile with the username {_profile.Username} was not found."));
 
         var response = await _httpClient.GetAsync($"api/Profiles/{_profile.Username}");
         

@@ -10,39 +10,55 @@ namespace ChatService.Web.Controllers;
 public class ProfilesController : ControllerBase
 {
     private readonly IProfileService _profileService;
-    
-    public ProfilesController(IProfileService profileService)
+    private readonly ILogger<ProfilesController> _logger;
+
+    public ProfilesController(IProfileService profileService, ILogger<ProfilesController> logger)
     {
         _profileService = profileService;
+        _logger = logger;
+
     }
 
     [HttpGet("{username}")]
     public async Task<ActionResult<Profile>> GetProfile(string username)
     {
-        var profile = await _profileService.GetProfile(username);
-        if (profile == null)
+        using (_logger.BeginScope("{Username}", username))
         {
-            return NotFound($"A profile with the username {username} was not found.");
+            try
+            {
+                var profile = await _profileService.GetProfile(username);
+                _logger.LogInformation("Profile of {Username} fetched.", username);
+                return Ok(profile);
+            }
+            catch (ProfileNotFoundException e)
+            {
+                _logger.LogError(e, "Error finding profile: {ErrorMessage}", e.Message);
+                return NotFound(e.Message);
+            }
         }
-
-        return Ok(profile);
     }
     
     [HttpPost]
     public async Task<ActionResult<Profile>> PostProfile(Profile profile)
     {
-        try
+        using (_logger.BeginScope("{Profile}", profile))
         {
-            await _profileService.AddProfile(profile);
-            return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
-        }
-        catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException || e is InvalidUsernameException)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (UsernameTakenException e)
-        {
-            return Conflict(e.Message);
+            try
+            {
+                await _profileService.AddProfile(profile);
+                _logger.LogInformation("Created Profile for user {ProfileUsername}.", profile.Username);
+                return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
+            }
+            catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException || e is InvalidUsernameException)
+            {
+                _logger.LogError(e, "Error posting profile: {ErrorMessage}", e.Message);
+                return BadRequest(e.Message);
+            }
+            catch (UsernameTakenException e)
+            {
+                _logger.LogError(e, "Error posting profile: {ErrorMessage}", e.Message);
+                return Conflict(e.Message);
+            }   
         }
     }
 }

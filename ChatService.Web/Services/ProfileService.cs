@@ -19,7 +19,15 @@ public class ProfileService : IProfileService
     {
         ValidateUsername(username);
         
-        return await _profileStore.GetProfile(username);
+        var profile = await _profileStore.GetProfile(username);
+        
+        if (profile == null)
+        {
+            throw new ProfileNotFoundException(
+                $"A profile with the username {username} was not found.");
+        }
+
+        return profile;
     }
     
     public async Task AddProfile(Profile profile)
@@ -50,7 +58,7 @@ public class ProfileService : IProfileService
         Profile? profile = await GetProfile(username);
         if (profile == null)
         {
-            throw new ArgumentException($"Profile with username {username} doesn't exist.");
+            throw new ProfileNotFoundException($"Profile with username {username} does not exist.");
         }
         await _imageService.DeleteImage(profile.ProfilePictureId);
         await _profileStore.DeleteProfile(username);

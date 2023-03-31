@@ -10,10 +10,12 @@ namespace ChatService.Web.Controllers;
 public class ImagesController : ControllerBase
 {
     private readonly IImageService _imageService;
+    private readonly ILogger<ImagesController> _logger;
 
-    public ImagesController(IImageService imageService)
+    public ImagesController(IImageService imageService, ILogger<ImagesController> logger)
     {
         _imageService = imageService;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -26,11 +28,13 @@ public class ImagesController : ControllerBase
         try
         {
              UploadImageServiceResult result = await _imageService.UploadImage(image);
+             _logger.LogInformation("Uploaded image with id {id}.", result.ImageId);
              return CreatedAtAction(nameof(DownloadImage), new { imageId = result.ImageId }, 
                  new UploadImageResponse(result.ImageId));
         }
         catch (InvalidImageTypeException e)
         {
+            _logger.LogError(e, "Error uploading image: {ErrorMessage}", e.Message);
             return BadRequest(e.Message);
         }
     }
@@ -38,17 +42,24 @@ public class ImagesController : ControllerBase
     [HttpGet("{imageId}")] 
     public async  Task<IActionResult> DownloadImage(string imageId)
     {
-        try
+        using (_logger.BeginScope("{ImageId}", imageId))
         {
-            return await _imageService.DownloadImage(imageId);
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (ImageNotFoundException e)
-        {
-            return NotFound(e.Message);
+            try
+            {
+                var result = await _imageService.DownloadImage(imageId);
+                _logger.LogInformation("Downloaded image with id {id}.", imageId);
+                return result;
+            }
+            catch (ArgumentException e)
+            {
+                _logger.LogError(e, "Error downloading image: {ErrorMessage}", e.Message);
+                return BadRequest(e.Message);
+            }
+            catch (ImageNotFoundException e)
+            {
+                _logger.LogError(e, "Error downloading image: {ErrorMessage}", e.Message);
+                return NotFound(e.Message);
+            }
         }
     }
 }

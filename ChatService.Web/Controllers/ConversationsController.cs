@@ -12,73 +12,97 @@ public class ConversationsController : ControllerBase
 {
     private readonly IUserConversationService _userConversationService;
     private readonly IMessageService _messageService;
+    private readonly ILogger<ConversationsController> _logger;
 
-    public ConversationsController(IUserConversationService userConversationService, IMessageService messageService)
+
+    public ConversationsController(
+        IUserConversationService userConversationService,
+        IMessageService messageService,
+        ILogger<ConversationsController> logger
+        )
     {
         _userConversationService = userConversationService;
         _messageService = messageService;
+        _logger = logger;
     }
 
     [HttpGet]
     public async Task<ActionResult<GetUserConversationsResponse>> GetUserConversations(string username, 
-        int limit = 10, OrderBy orderBy = OrderBy.DESC, string? continuationToken = null, long lastSeenConversationTime = 0)
-    {
-        GetUserConversationsServiceResult result;
+        int limit = 10, OrderBy orderBy = OrderBy.DESC, string? continuationToken = null, long lastSeenConversationTime = 0){
 
-        try
+        using (_logger.BeginScope("{Username}", username))
         {
-            result = await _userConversationService.GetUserConversations(
-                username, limit, orderBy, continuationToken, lastSeenConversationTime);
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (UserNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
+            try
+            {
+                GetUserConversationsServiceResult result = await _userConversationService.GetUserConversations(
+                    username, limit, orderBy, continuationToken, lastSeenConversationTime);
+            
+                _logger.LogInformation("Fetched conversations of user {Username}", username);
+            
+                string nextUri = "/api/conversations" +
+                                 $"?username={username}" +
+                                 $"&limit={limit}" +
+                                 $"&lastSeenConversationTime={lastSeenConversationTime}" +
+                                 $"&continuationToken={result.NextContinuationToken}";
         
-        string nextUri = "/api/conversations" +
-                         $"?username={username}" +
-                         $"&limit={limit}" +
-                         $"&lastSeenConversationTime={lastSeenConversationTime}" +
-                         $"&continuationToken={result.NextContinuationToken}";
+                GetUserConversationsResponse response = new GetUserConversationsResponse
+                {
+                    Conversations = result.Conversations,
+                    NextUri = nextUri
+                };
         
-        GetUserConversationsResponse response = new GetUserConversationsResponse
-        {
-            Conversations = result.Conversations,
-            NextUri = nextUri
-        };
-        
-        return Ok(response);
+                return Ok(response);
+            }
+            catch (ArgumentException e)
+            {
+                _logger.LogError(e, "Error getting user conversations: {ErrorMessage}", e.Message);
+                return BadRequest(e.Message);
+            }
+            catch (UserNotFoundException e)
+            {
+                _logger.LogError(e, "Error getting user conversations: {ErrorMessage}", e.Message);
+                return NotFound(e.Message);
+            }
+        }
     }
 
     [HttpPost]
     public async Task<ActionResult<StartConversationResponse>> StartConversation(StartConversationRequest request)
     {
-        try
+        using (_logger.BeginScope("{SenderUsername}", request.FirstMessage.SenderUsername))
         {
-            StartConversationServiceResult result = await _userConversationService.CreateConversation(request);
-            StartConversationResponse response = new StartConversationResponse
+            try
             {
-                ConversationId = result.ConversationId,
-                CreatedUnixTime = result.CreatedUnixTime
-            };
-            return CreatedAtAction(nameof(GetUserConversations), 
-                new { username = request.FirstMessage.SenderUsername }, response);
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (ProfileNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch (MessageExistsException e)
-        {
-            return Conflict(e.Message);
+                StartConversationServiceResult result = await _userConversationService.CreateConversation(request);
+                
+                _logger.LogInformation(
+                    "Created user conversation with Id {ConversationId} for user {Username}",
+                    result.ConversationId, request.FirstMessage.SenderUsername);
+                
+                StartConversationResponse response = new StartConversationResponse
+                {
+                    ConversationId = result.ConversationId,
+                    CreatedUnixTime = result.CreatedUnixTime
+                };
+                
+                return CreatedAtAction(nameof(GetUserConversations), 
+                    new { username = request.FirstMessage.SenderUsername }, response);
+            }
+            catch (ArgumentException e)
+            {
+                _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
+                return BadRequest(e.Message);
+            }
+            catch (ProfileNotFoundException e)
+            {
+                _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
+                return NotFound(e.Message);
+            }
+            catch (MessageExistsException e)
+            {
+                _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
+                return Conflict(e.Message);
+            }
         }
     }
 
@@ -86,58 +110,79 @@ public class ConversationsController : ControllerBase
     public async Task<ActionResult<GetMessagesResponse>> GetMessages(string conversationId,
         int limit = 10, OrderBy orderBy = OrderBy.DESC, string? continuationToken = null, long lastSeenConversationTime = 0)
     {
-        try
+        using (_logger.BeginScope("{ConversationId}", conversationId))
         {
-            GetMessagesServiceResult result = await _messageService.GetMessages(
-                conversationId, limit, orderBy, continuationToken, lastSeenConversationTime);
-            
-            string nextUri = $"/api/conversations/{conversationId}/messages" +
-                             $"&limit={limit}" +
-                             $"&continuationToken={result.NextContinuationToken}" +
-                             $"&lastSeenConversationTime={lastSeenConversationTime}";
-        
-            GetMessagesResponse response = new GetMessagesResponse
+            try
             {
-                Messages = result.Messages,
-                NextUri = nextUri
-            };
+                GetMessagesServiceResult result = await _messageService.GetMessages(
+                    conversationId, limit, orderBy, continuationToken, lastSeenConversationTime);
+            
+                _logger.LogInformation("Fetched messages from conversation {ConversationId}", conversationId);
+                
+                string nextUri = $"/api/conversations/{conversationId}/messages" +
+                                 $"&limit={limit}" +
+                                 $"&continuationToken={result.NextContinuationToken}" +
+                                 $"&lastSeenConversationTime={lastSeenConversationTime}";
         
-            return Ok(response);
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (ConversationDoesNotExistException e)
-        {
-            return NotFound(e.Message);
+                GetMessagesResponse response = new GetMessagesResponse
+                {
+                    Messages = result.Messages,
+                    NextUri = nextUri
+                };
+        
+                return Ok(response);
+            }
+            catch (ArgumentException e)
+            {
+                _logger.LogError(e, "Error getting messages: {ErrorMessage}", e.Message);
+                return BadRequest(e.Message);
+            }
+            catch (ConversationDoesNotExistException e)
+            {
+                _logger.LogError(e, "Error getting messages: {ErrorMessage}", e.Message);
+                return NotFound(e.Message);
+            }   
         }
     }
 
     [HttpPost("{conversationId}/messages")]
     public async Task<ActionResult<SendMessageResponse>> PostMessage(string conversationId, SendMessageRequest request)
     {
-        try
+        using (_logger.BeginScope(new Dictionary<string, object>
+               {
+                   {"ConversationId", conversationId},
+                   {"SenderUsername", request.SenderUsername}
+               }))
         {
-            SendMessageResponse response = await _messageService.AddMessage(conversationId, false, request);
+            try
+            {
+                SendMessageResponse response = await _messageService.AddMessage(conversationId, false, request);
             
-            return CreatedAtAction(nameof(GetMessages), new { conversationId = conversationId}, response);
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (UserNotParticipantException e)
-        {
-            return new ObjectResult(e.Message) { StatusCode = 403 };
-        }
-        catch (Exception e) when (e is ProfileNotFoundException || e is ConversationDoesNotExistException)
-        {
-            return NotFound(e.Message);
-        }
-        catch (MessageExistsException e)
-        {
-            return Conflict(e.Message);
+                _logger.LogInformation("Adding message {MessageId} to conversation {ConversationId} by sender {SenderUsername}",
+                    request.MessageId, conversationId, request.SenderUsername);
+                
+                return CreatedAtAction(nameof(GetMessages), new { conversationId = conversationId}, response);
+            }
+            catch (ArgumentException e)
+            {
+                _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
+                return BadRequest(e.Message);
+            }
+            catch (UserNotParticipantException e)
+            {
+                _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
+                return new ObjectResult(e.Message) { StatusCode = 403 };
+            }
+            catch (Exception e) when (e is ProfileNotFoundException || e is ConversationDoesNotExistException)
+            {
+                _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
+                return NotFound(e.Message);
+            }
+            catch (MessageExistsException e)
+            {
+                _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
+                return Conflict(e.Message);
+            }
         }
     }
 }

@@ -149,7 +149,7 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task DeleteProfile_ProfileNotFound()
     {
-        await Assert.ThrowsAsync<ArgumentException>(
+        await Assert.ThrowsAsync<ProfileNotFoundException>(
             async () => await _profileService.DeleteProfile(_profile.Username));
         
         _imageStoreMock.Verify(m => m.DeleteImage(_profile.ProfilePictureId), Times.Never);
