@@ -22,20 +22,17 @@ public class ImagesController : ControllerBase
         MemoryStream content = new();
         await request.File.CopyToAsync(content);
         Image image = new Image(request.File.ContentType, content);
-
-        UploadImageServiceResult result;
         
         try
         {
-             result = await _imageService.UploadImage(image);
+             UploadImageServiceResult result = await _imageService.UploadImage(image);
+             return CreatedAtAction(nameof(DownloadImage), new { imageId = result.ImageId }, 
+                 new UploadImageResponse(result.ImageId));
         }
         catch (InvalidImageTypeException e)
         {
             return BadRequest(e.Message);
         }
-        
-        return CreatedAtAction(nameof(DownloadImage), new { imageId = result.ImageId }, 
-            new UploadImageResponse(result.ImageId));
     }
     
     [HttpGet("{imageId}")] 

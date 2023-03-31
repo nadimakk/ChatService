@@ -30,6 +30,8 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     private readonly string _conversationId = Guid.NewGuid().ToString();
     
     private readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    
+    private readonly string _nextContinuationToken = Guid.NewGuid().ToString();
 
     private readonly StartConversationRequest _startConversationRequest = new StartConversationRequest
     {
@@ -64,12 +66,10 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             LastModifiedUnixTime = _unixTimeNow
         });
         
-        string nextContinuationToken = Guid.NewGuid().ToString();
-        
         var userConversationServiceResult = new GetUserConversationsServiceResult
         {
             Conversations = conversations,
-            NextContinuationToken = nextContinuationToken
+            NextContinuationToken = _nextContinuationToken
         };
         
         _userConversationServiceMock.Setup(m => m.GetUserConversations(_username, 10, OrderBy.DESC, null, 0))
@@ -79,7 +79,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
                          $"?username={_username}" +
                          "&limit=10" +
                          "&lastSeenConversationTime=0" +
-                         $"&continuationToken={nextContinuationToken}";
+                         $"&continuationToken={_nextContinuationToken}";
 
         var response = await _httpClient.GetAsync($"api/Conversations/?username={_username}");
         var json = await response.Content.ReadAsStringAsync();
@@ -190,13 +190,11 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             SenderUsername = Guid.NewGuid().ToString(),
             UnixTime = _unixTimeNow
         });
-        
-        string nextContinuationToken = Guid.NewGuid().ToString();
-        
+
         var getMessagesServiceResult = new GetMessagesServiceResult
         {
             Messages = messages,
-            NextContinuationToken = nextContinuationToken
+            NextContinuationToken = _nextContinuationToken
         };
         
         _messageServiceMock.Setup(m => m.GetMessages(_conversationId, 10, OrderBy.DESC, null, 0))
@@ -204,7 +202,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         
         string nextUri = $"/api/conversations/{_conversationId}/messages" +
                          "&limit=10" +
-                         $"&continuationToken={nextContinuationToken}" +
+                         $"&continuationToken={_nextContinuationToken}" +
                          "&lastSeenConversationTime=0";
 
         var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
@@ -272,7 +270,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
-    public async Task PostMessage_UserNotParticipantException()
+    public async Task PostMessage_UserNotParticipant()
     {
         _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
             .ThrowsAsync(new UserNotParticipantException(
@@ -298,7 +296,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
-    public async Task PostMessage_ConversationDoesNotExistException()
+    public async Task PostMessage_ConversationDoesNotExist()
     {
         _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
             .ThrowsAsync(new ConversationDoesNotExistException(
@@ -311,7 +309,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
-    public async Task PostMessage_MessageExistsException()
+    public async Task PostMessage_MessageExists()
     {
         _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
             .ThrowsAsync(new MessageExistsException($"A message with ID {_sendMessageRequest.MessageId} already exists."));
