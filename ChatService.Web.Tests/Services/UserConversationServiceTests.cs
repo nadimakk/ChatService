@@ -3,6 +3,7 @@ using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Services;
 using ChatService.Web.Storage;
+using ChatService.Web.Utilities;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,9 +66,9 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
 
         response.CreatedUnixTime = _unixTimeNow;
 
-        StartConversationResponse expected = new StartConversationResponse
+        StartConversationServiceResult expected = new StartConversationServiceResult
         {
-            ConversationId = GenerateConversationId(
+            ConversationId = ConversationIdUtilities.GenerateConversationId(
                 _participants.ElementAt(0), _participants.ElementAt(1)),
             CreatedUnixTime = _unixTimeNow
         };
@@ -170,13 +171,13 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             new UserConversation
             {
                 Username = username1,
-                ConversationId = GenerateConversationId(username1, username2),
+                ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username2),
                 LastModifiedTime = _unixTimeNow
             },
             new UserConversation
             {
                 Username = username1,
-                ConversationId = GenerateConversationId(username1, username3),
+                ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username3),
                 LastModifiedTime = _unixTimeNow
             }
         };
@@ -197,13 +198,13 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             {
                 new Conversation
                 {  
-                    ConversationId = GenerateConversationId(username1, username2),
+                    ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username2),
                     LastModifiedUnixTime = _unixTimeNow,
                     Recipient = profile2
                 },
                 new Conversation
                 {
-                    ConversationId = GenerateConversationId(username1, username3),
+                    ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username3),
                     LastModifiedUnixTime = _unixTimeNow,
                     Recipient = profile3
                 }
@@ -248,15 +249,6 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
                 _participants.ElementAt(0), 10, OrderBy.DESC, null, 0));
     }
     
-    private string GenerateConversationId(string username1, string username2)
-    {
-        if (username1.CompareTo(username2) < 0)
-        {
-            return username1 + "_" + username2;
-        }
-        return username2 + "_" + username1;
-    }
-
     public static IEnumerable<object[]> GenerateInvalidParticipantsList(){
         
         yield return new object[] { new List<string> {_participants.ElementAt(0), ""} };

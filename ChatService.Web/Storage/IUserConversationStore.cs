@@ -1,6 +1,5 @@
 using ChatService.Web.Dtos;
 using ChatService.Web.Enums;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 
 namespace ChatService.Web.Storage;
 

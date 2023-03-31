@@ -19,44 +19,22 @@ public class MessageService : IMessageService
     public async Task<SendMessageResponse> AddMessage(string conversationId, bool isFirstMessage,
         SendMessageRequest request)
     {
-        if (request == null ||
-            string.IsNullOrWhiteSpace(request.MessageId) ||
-            string.IsNullOrWhiteSpace(request.SenderUsername) ||
-            string.IsNullOrWhiteSpace(request.Text)
-           )
-        {
-            throw new ArgumentException($"Invalid SendMessageRequest {request}.");
-        }
+        ValidateSendMessageRequest(request);
+        ValidateConversationId(conversationId);
+        AuthorizeSender(conversationId, request.SenderUsername);
 
-        if (string.IsNullOrWhiteSpace(conversationId))
-        {
-            throw new ArgumentException($"Invalid conversationId {conversationId}.");
-        }
-
-        //check if converstionId contains sender username to know if they are allowed to send message here
-        if (!conversationId.Contains(request.SenderUsername))
-        {
-            //TODO: 403 error code in controller
-            throw new UserNotParticipantException(
-                $"User {request.SenderUsername} is not a participant of conversation {conversationId}.");
-        }
-
-        //check if the sender's profile exists
         if (!await _profileService.ProfileExists(request.SenderUsername))
         {
             throw new ProfileNotFoundException(
                 $"A profile with the username {request.SenderUsername} was not found.");
         }
-
-        //if this is NOT the first message, check if the conversation already exists
+        
         if (!isFirstMessage && !await _messageStore.ConversationPartitionExists(conversationId))
         {
             throw new ConversationDoesNotExistException(
                 $"A conversation partition with the conversationId {conversationId} does not exist.");
         }
-        //if it IS the first message, then its ok if the conversation does not exist as the partition will be created
 
-        //add the message to the conversation partition
         long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         Message message = new Message
@@ -68,7 +46,6 @@ public class MessageService : IMessageService
         };
 
         await _messageStore.AddMessage(conversationId, message);
-        ////////////////////////////////////
 
         return new SendMessageResponse
         {
@@ -84,28 +61,16 @@ public class MessageService : IMessageService
     public async Task<GetMessagesServiceResult> GetMessages(string conversationId, int limit, OrderBy orderBy,
         string? continuationToken, long lastSeenConversationTime)
     {
-        if (string.IsNullOrWhiteSpace(conversationId))
-        {
-            throw new ArgumentException($"Invalid conversationId {conversationId}.");
-        }
-
-        if (limit <= 0)
-        {
-            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
-        }
-
-        if (lastSeenConversationTime < 0)
-        {
-            throw new ArgumentException(
-                $"Invalid lastSeenConversationTime {lastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
-        }
+        ValidateConversationId(conversationId);
+        ValidateLimit(limit);
+        ValidateLastSeenConversationTime(lastSeenConversationTime);
 
         if (!await _messageStore.ConversationPartitionExists(conversationId))
         {
             throw new ConversationDoesNotExistException(
                 $"A conversation partition with the conversationId {conversationId} does not exist.");
         }
-        
+
         var result = await _messageStore.GetMessages(
             conversationId, limit, orderBy, continuationToken, lastSeenConversationTime);
 
@@ -114,5 +79,52 @@ public class MessageService : IMessageService
             Messages = result.Messages,
             NextContinuationToken = result.NextContinuationToken
         };
+    }
+
+    private void ValidateSendMessageRequest(SendMessageRequest request)
+    {
+        if (request == null ||
+            string.IsNullOrWhiteSpace(request.MessageId) ||
+            string.IsNullOrWhiteSpace(request.SenderUsername) ||
+            string.IsNullOrWhiteSpace(request.Text)
+           )
+        {
+            throw new ArgumentException($"Invalid SendMessageRequest {request}.");
+        }
+    }
+
+    private void ValidateConversationId(string conversationId)
+    {
+        if (string.IsNullOrWhiteSpace(conversationId))
+        {
+            throw new ArgumentException($"Invalid conversationId {conversationId}.");
+        }
+    }
+
+    private void ValidateLimit(int limit)
+    {
+        if (limit <= 0)
+        {
+            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
+        }
+    }
+
+    private void ValidateLastSeenConversationTime(long lastSeenConversationTime)
+    { 
+        if (lastSeenConversationTime < 0) 
+        { 
+            throw new ArgumentException($"Invalid lastSeenConversationTime {lastSeenConversationTime}. " +
+                                        $"LastSeenConversationTime must be greater or equal to 0."); 
+        }
+    }
+    
+    private void AuthorizeSender(string conversationId, string senderUsername)
+    {
+        string[] usernames = conversationId.Split('_');
+        if (!usernames[0].Equals(senderUsername) && !usernames[1].Equals(senderUsername))
+        {
+            throw new UserNotParticipantException(
+                $"User {senderUsername} is not a participant of conversation {conversationId}.");
+        }
     }
 }

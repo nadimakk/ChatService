@@ -57,12 +57,16 @@ public class ConversationsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<StartConversationResponse>> StartConversation(StartConversationRequest request)
     {
-        //TODO: add a start conversation service result
-        StartConversationResponse response;
-
         try
         {
-            response = await _userConversationService.CreateConversation(request);
+            StartConversationServiceResult result = await _userConversationService.CreateConversation(request);
+            StartConversationResponse response = new StartConversationResponse
+            {
+                ConversationId = result.ConversationId,
+                CreatedUnixTime = result.CreatedUnixTime
+            };
+            return CreatedAtAction(nameof(GetUserConversations), 
+                new { username = request.FirstMessage.SenderUsername }, response);
         }
         catch (ArgumentException e)
         {
@@ -76,21 +80,29 @@ public class ConversationsController : ControllerBase
         {
             return Conflict(e.Message);
         }
-        
-        return CreatedAtAction(nameof(GetUserConversations), 
-            new { username = request.FirstMessage.SenderUsername }, response);
     }
 
     [HttpGet("{conversationId}/messages")]
     public async Task<ActionResult<GetMessagesResponse>> GetMessages(string conversationId,
         int limit = 10, OrderBy orderBy = OrderBy.DESC, string? continuationToken = null, long lastSeenConversationTime = 0)
     {
-        GetMessagesServiceResult result;
-
         try
         {
-            result = await _messageService.GetMessages(
+            GetMessagesServiceResult result = await _messageService.GetMessages(
                 conversationId, limit, orderBy, continuationToken, lastSeenConversationTime);
+            
+            string nextUri = $"/api/conversations/{conversationId}/messages" +
+                             $"&limit={limit}" +
+                             $"&continuationToken={result.NextContinuationToken}" +
+                             $"&lastSeenConversationTime={lastSeenConversationTime}";
+        
+            GetMessagesResponse response = new GetMessagesResponse
+            {
+                Messages = result.Messages,
+                NextUri = nextUri
+            };
+        
+            return Ok(response);
         }
         catch (ArgumentException e)
         {
@@ -100,29 +112,16 @@ public class ConversationsController : ControllerBase
         {
             return NotFound(e.Message);
         }
-        
-        string nextUri = $"/api/conversations/{conversationId}/messages" +
-                         $"&limit={limit}" +
-                         $"&continuationToken={result.NextContinuationToken}" +
-                         $"&lastSeenConversationTime={lastSeenConversationTime}";
-        
-        GetMessagesResponse response = new GetMessagesResponse
-        {
-            Messages = result.Messages,
-            NextUri = nextUri
-        };
-        
-        return Ok(response);
     }
 
     [HttpPost("{conversationId}/messages")]
     public async Task<ActionResult<SendMessageResponse>> PostMessage(string conversationId, SendMessageRequest request)
     {
-        SendMessageResponse response;
-
         try
         {
-            response = await _messageService.AddMessage(conversationId, false, request);
+            SendMessageResponse response = await _messageService.AddMessage(conversationId, false, request);
+            
+            return CreatedAtAction(nameof(GetMessages), new { conversationId = conversationId}, response);
         }
         catch (ArgumentException e)
         {
@@ -140,7 +139,5 @@ public class ConversationsController : ControllerBase
         {
             return Conflict(e.Message);
         }
-        
-        return CreatedAtAction(nameof(GetMessages), new { conversationId = conversationId}, response);
     }
 }

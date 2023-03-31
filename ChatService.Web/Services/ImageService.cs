@@ -37,6 +37,16 @@ public class ImageService : IImageService
         return new FileContentResult(image.Content.ToArray(), image.ContentType);
     }
 
+    public async Task DeleteImage(string imageId)
+    {
+        await _imageStore.DeleteImage(imageId);
+    }
+    
+    public async Task<bool> ImageExists(string imageId)
+    {
+        return await _imageStore.ImageExists(imageId);
+    }
+
     private void ValidateImage(Image image)
     {
         string contentType = image.ContentType.ToLower();

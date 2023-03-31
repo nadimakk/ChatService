@@ -115,7 +115,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task StartConversation_Success()
     {
-        var startConversationResponse = new StartConversationResponse
+        var startConversationServiceResult = new StartConversationServiceResult
         {
             ConversationId = Guid.NewGuid().ToString(),
             CreatedUnixTime = _unixTimeNow
@@ -124,14 +124,20 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
                     p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                          && p.FirstMessage == _startConversationRequest.FirstMessage)))
-            .ReturnsAsync(startConversationResponse);
+            .ReturnsAsync(startConversationServiceResult);
+
+        var expectedStartConversationResponse = new StartConversationResponse
+        {
+            ConversationId = startConversationServiceResult.ConversationId,
+            CreatedUnixTime = startConversationServiceResult.CreatedUnixTime
+        };
         
         var response = await _httpClient.PostAsJsonAsync($"api/Conversations/", _startConversationRequest);
         var json = await response.Content.ReadAsStringAsync();
         var receivedStartConversationResponse = JsonConvert.DeserializeObject<StartConversationResponse>(json);
         
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        Assert.Equal(startConversationResponse, receivedStartConversationResponse);
+        Assert.Equal(expectedStartConversationResponse, receivedStartConversationResponse);
     }
     
     [Fact]
