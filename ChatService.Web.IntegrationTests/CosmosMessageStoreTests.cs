@@ -1,0 +1,255 @@
+using ChatService.Web.Dtos;
+using ChatService.Web.Enums;
+using ChatService.Web.Exceptions;
+using ChatService.Web.Storage;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace ChatService.Web.IntegrationTests;
+
+public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
+{
+    private readonly IMessageStore _messageStore;
+
+    private readonly string _conversationId = Guid.NewGuid().ToString() + "_";
+    
+    private readonly Message _message1 = new Message
+    {
+        MessageId = Guid.NewGuid().ToString(),
+        UnixTime = 100,
+        SenderUsername = Guid.NewGuid().ToString(),
+        Text = "text of _message1"
+    };
+    
+    private readonly Message _message2 = new Message
+    {
+        MessageId = Guid.NewGuid().ToString(),
+        UnixTime = 200,
+        SenderUsername = Guid.NewGuid().ToString(),
+        Text = "text of _message2"
+    };
+    
+    private readonly Message _message3 = new Message
+    {
+        MessageId = Guid.NewGuid().ToString(),
+        UnixTime = 300,
+        SenderUsername = Guid.NewGuid().ToString(),
+        Text = "text of _message3"
+    };
+    
+    public CosmosMessageStoreTests(WebApplicationFactory<Program> factory)
+    {
+        _messageStore = factory.Services.GetRequiredService<IMessageStore>();
+    }
+
+    [Fact]
+    public async Task AddMessage_Successful()
+    {
+        await _messageStore.AddMessage(_conversationId, _message1);
+        
+        Assert.Equal(_message1, await _messageStore.GetMessage(_conversationId, _message1.MessageId));
+    }
+
+    [Theory]
+    [InlineData(null, "senderUsername", "text", 100)]
+    [InlineData("", "senderUsername", "text", 100)]
+    [InlineData(" ", "senderUsername", "text", 100)]
+    [InlineData("id", null, "text", 100)]
+    [InlineData("id", "", "text", 100)]
+    [InlineData("id", " ", "text", 100)]
+    [InlineData("id", "senderUsername", null, 100)]
+    [InlineData("id", "senderUsername", "", 100)]
+    [InlineData("id", "senderUsername", " ", 100)]
+    [InlineData("id", "senderUsername", "text", -100)]
+    public async Task AddMessage_InvalidArguments(string id, string senderUsername, string text, long unixTime)
+    {
+        Message message = new Message
+        {
+            MessageId = id,
+            UnixTime = unixTime,
+            SenderUsername = senderUsername,
+            Text = text
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _messageStore.AddMessage(_conversationId, message));
+    }
+    
+    [Fact]
+    public async Task AddMessage_MessageAlreadyExists()
+    {
+        await _messageStore.AddMessage(_conversationId, _message1);
+        
+        await Assert.ThrowsAsync<MessageExistsException>(() => _messageStore.AddMessage(_conversationId, _message1));
+    }
+
+    [Theory]
+    [InlineData(null, "messageId")]
+    [InlineData("", "messageId")]
+    [InlineData(" ", "messageId")]
+    [InlineData("conversationId", null)]
+    [InlineData("conversationId", "")]
+    [InlineData("conversationId", " ")]
+    public async Task GetMessage_InvalidArguments(string conversationId, string messageId)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => _messageStore.GetMessage(conversationId, messageId));
+    }
+    
+    [Fact]
+    public async Task GetMessage_MessageNotFound()
+    {
+        await Assert.ThrowsAsync<MessageNotFoundException>(() => _messageStore.GetMessage(_conversationId, _message1.MessageId));
+    }
+
+    [Fact]
+    public async Task GetMessages_Limit()
+    {
+        await AddMultipleMessages(_conversationId, _message1, _message2, _message3);
+
+        var response = await _messageStore.GetMessages(
+            _conversationId, 1, OrderBy.ASC, null, 1);
+        Assert.Equal(1, response.Messages.Count);
+
+        response = await _messageStore.GetMessages(_conversationId, 2, OrderBy.ASC, null, 1);
+        Assert.Equal(2, response.Messages.Count);
+        
+        response = await _messageStore.GetMessages(_conversationId, 3, OrderBy.ASC, null, 1);
+        Assert.Equal(3, response.Messages.Count);
+        
+        await DeleteMultipleMessages(_conversationId, _message1, _message2, _message3);
+    }
+
+    [Theory]
+    [InlineData(OrderBy.ASC)]
+    [InlineData(OrderBy.DESC)]
+    public async Task GetMessages_OrderBy(OrderBy orderBy)
+    {
+        await AddMultipleMessages(_conversationId, _message1, _message2);
+
+        List<Message> messagesExpected = new();
+        messagesExpected.Add(_message1);
+        messagesExpected.Add(_message2);
+
+        var response = await _messageStore.GetMessages(
+            _conversationId, 10, orderBy, null, 1);
+
+        if (orderBy == OrderBy.ASC)
+        {
+            Assert.Equal(messagesExpected, response.Messages);
+        }
+        else
+        {
+            messagesExpected.Reverse();
+            Assert.Equal(messagesExpected, response.Messages);
+        }
+        
+        await _messageStore.DeleteMessage(_conversationId, _message2.MessageId);
+    }
+
+    [Fact]
+    public async Task GetMessages_ContinuationTokenValidity()
+    {
+        await AddMultipleMessages(_conversationId, _message1, _message2, _message3);
+
+        var response = await _messageStore.GetMessages(
+            _conversationId, 1, OrderBy.ASC, null, 1);
+        Assert.Equal(_message1, response.Messages.ElementAt(0));
+        Assert.NotNull(response.NextContinuationToken);
+        
+        response = await _messageStore.GetMessages(
+            _conversationId, 1, OrderBy.ASC, response.NextContinuationToken, 1);
+        Assert.Equal(_message2, response.Messages.ElementAt(0));
+        Assert.NotNull(response.NextContinuationToken);
+        
+        response = await _messageStore.GetMessages(
+            _conversationId, 1, OrderBy.ASC, response.NextContinuationToken, 1);
+        Assert.Equal(_message3, response.Messages.ElementAt(0));
+        Assert.Null(response.NextContinuationToken);
+        
+        await DeleteMultipleMessages(_conversationId, _message2, _message3);
+    }
+    
+    [Theory]
+    [InlineData(0)]
+    [InlineData(100)]
+    [InlineData(200)]
+    [InlineData(300)]
+    public async Task GetMessages_LastSeenMessageTime(long lastSeenMessageTime)
+    {
+        await AddMultipleMessages(_conversationId, _message1, _message2, _message3);
+
+        List<Message> messagesExpected = new();
+        if(_message1.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message1);
+        if(_message2.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message2);
+        if(_message3.UnixTime > lastSeenMessageTime) messagesExpected.Add(_message3);
+
+        var response = await _messageStore.GetMessages(
+            _conversationId, 10, OrderBy.ASC, null, lastSeenMessageTime);
+        
+        Assert.Equal(messagesExpected, response.Messages);
+        
+        await DeleteMultipleMessages(_conversationId, _message2, _message3);
+    }
+
+    [Theory]
+    [InlineData(null, 10, 100)]
+    [InlineData("", 10, 100)]
+    [InlineData(" ", 10, 100)]
+    [InlineData("conversationId", 0, 100)]
+    [InlineData("conversationId", -10, 100)]
+    [InlineData("conversationId", 10, -100)]
+    public async Task GetMessages_InvalidArguments(string conversationId, int limit, long lastSeenMessageTime)
+    {
+        Assert.ThrowsAsync<ArgumentException>(() =>
+            _messageStore.GetMessages(conversationId, limit, OrderBy.ASC, null, lastSeenMessageTime));
+    }
+    
+    [Fact]
+    public async Task GetMessages_InvalidContinuationToken()
+    {
+        string invalidContinuationToken = Guid.NewGuid().ToString();
+
+        await Assert.ThrowsAsync<InvalidContinuationTokenException>(
+            () => _messageStore.GetMessages(
+                _conversationId, 10, OrderBy.DESC, invalidContinuationToken, 0));
+    }
+
+    [Fact]
+    public async Task ConversationPartitionExists_Exists()
+    {
+        await _messageStore.AddMessage(_conversationId, _message1);
+        
+        Assert.True(await _messageStore.ConversationPartitionExists(_conversationId));
+    }
+    
+    [Fact]
+    public async Task ConversationPartitionExists_DoesNotExists()
+    {
+        Assert.False(await _messageStore.ConversationPartitionExists(_conversationId));
+    }
+    
+    private async Task AddMultipleMessages(string conversationId, params Message[] messages)
+    {
+        foreach (Message message in messages)
+        {
+            await _messageStore.AddMessage(conversationId, message);
+        }
+    }
+    
+    private async Task DeleteMultipleMessages(string conversationId, params Message[] messages)
+    {
+        foreach (Message message in messages)
+        {
+            await _messageStore.DeleteMessage(conversationId, message.MessageId);
+        }
+    }
+    
+    public Task InitializeAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _messageStore.DeleteMessage(_conversationId, _message1.MessageId);
+    }
+}
