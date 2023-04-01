@@ -38,12 +38,16 @@ public class ConversationsController : ControllerBase
                     username, limit, orderBy, continuationToken, lastSeenConversationTime);
             
                 _logger.LogInformation("Fetched conversations of user {Username}", username);
-            
-                string nextUri = "/api/conversations" +
-                                 $"?username={username}" +
-                                 $"&limit={limit}" +
-                                 $"&lastSeenConversationTime={lastSeenConversationTime}" +
-                                 $"&continuationToken={result.NextContinuationToken}";
+
+                string nextUri = "";
+                if (result.NextContinuationToken != null)
+                {
+                    nextUri = "/api/conversations" +
+                            $"?username={username}" +
+                            $"&limit={limit}" +
+                            $"&lastSeenConversationTime={lastSeenConversationTime}" +
+                            $"&continuationToken={result.NextContinuationToken}";
+                }
         
                 GetUserConversationsResponse response = new GetUserConversationsResponse
                 {
@@ -98,7 +102,12 @@ public class ConversationsController : ControllerBase
                 _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
                 return NotFound(e.Message);
             }
-            catch (MessageExistsException e)
+            catch (UserNotParticipantException e)
+            {
+                _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
+                return new ObjectResult(e.Message) { StatusCode = 403 };
+            }
+            catch (Exception e) when (e is MessageExistsException || e is UserConversationExistsException)
             {
                 _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
@@ -118,12 +127,16 @@ public class ConversationsController : ControllerBase
                     conversationId, limit, orderBy, continuationToken, lastSeenConversationTime);
             
                 _logger.LogInformation("Fetched messages from conversation {ConversationId}", conversationId);
-                
-                string nextUri = $"/api/conversations/{conversationId}/messages" +
-                                 $"&limit={limit}" +
-                                 $"&continuationToken={result.NextContinuationToken}" +
-                                 $"&lastSeenConversationTime={lastSeenConversationTime}";
-        
+
+                string nextUri = "";
+                if (result.NextContinuationToken != null)
+                { 
+                    nextUri = $"/api/conversations/{conversationId}/messages" +
+                            $"&limit={limit}" +
+                            $"&continuationToken={result.NextContinuationToken}" +
+                            $"&lastSeenConversationTime={lastSeenConversationTime}";
+                }
+
                 GetMessagesResponse response = new GetMessagesResponse
                 {
                     Messages = result.Messages,
