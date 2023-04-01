@@ -21,13 +21,6 @@ public class MessageService : IMessageService
     {
         ValidateSendMessageRequest(request);
         ValidateConversationId(conversationId);
-        AuthorizeSender(conversationId, request.SenderUsername);
-
-        if (!await _profileService.ProfileExists(request.SenderUsername))
-        {
-            throw new ProfileNotFoundException(
-                $"A profile with the username {request.SenderUsername} was not found.");
-        }
         
         if (!isFirstMessage && !await _messageStore.ConversationPartitionExists(conversationId))
         {
@@ -35,6 +28,14 @@ public class MessageService : IMessageService
                 $"A conversation partition with the conversationId {conversationId} does not exist.");
         }
 
+        if (!await _profileService.ProfileExists(request.SenderUsername))
+        {
+            throw new ProfileNotFoundException(
+                $"A profile with the username {request.SenderUsername} was not found.");
+        }
+        
+        AuthorizeSender(conversationId, request.SenderUsername);
+        
         long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         Message message = new Message
@@ -95,7 +96,7 @@ public class MessageService : IMessageService
 
     private void ValidateConversationId(string conversationId)
     {
-        if (string.IsNullOrWhiteSpace(conversationId))
+        if (string.IsNullOrWhiteSpace(conversationId) || !conversationId.Contains('_'))
         {
             throw new ArgumentException($"Invalid conversationId {conversationId}.");
         }

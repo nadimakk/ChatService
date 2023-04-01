@@ -19,15 +19,7 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task AddProfile(Profile profile)
     {
-        if (profile == null ||
-            string.IsNullOrWhiteSpace(profile.Username) ||
-            string.IsNullOrWhiteSpace(profile.FirstName) ||
-            string.IsNullOrWhiteSpace(profile.LastName) ||
-            string.IsNullOrWhiteSpace(profile.ProfilePictureId)
-           )
-        {
-            throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
-        }
+        ValidateProfile(profile);
 
         try
         {
@@ -112,5 +104,22 @@ public class CosmosProfileStore : IProfileStore
             LastName = entity.LastName,
             ProfilePictureId = entity.ProfilePictureId
         };
+    }
+    
+    private void ValidateProfile(Profile profile)
+    {
+        if (profile == null ||
+            string.IsNullOrWhiteSpace(profile.Username) ||
+            string.IsNullOrWhiteSpace(profile.FirstName) ||
+            string.IsNullOrWhiteSpace(profile.LastName) ||
+            string.IsNullOrWhiteSpace(profile.ProfilePictureId)
+           )
+        {
+            throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
+        }
+        if (profile.Username.Contains('_'))
+        {
+            throw new InvalidUsernameException($"Username {profile.Username} is invalid. Usernames cannot have an underscore.");
+        }
     }
 }

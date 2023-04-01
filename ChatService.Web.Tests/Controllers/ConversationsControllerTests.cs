@@ -100,14 +100,31 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetUserConversations_InvalidContinuationToken()
+    {
+        string invalidContinuationToken = Guid.NewGuid().ToString();
+
+        _userConversationServiceMock.Setup(m => m.GetUserConversations(
+                _username, 10, OrderBy.DESC, invalidContinuationToken, 0))
+            .ThrowsAsync(new InvalidContinuationTokenException($"Continuation token {invalidContinuationToken} is invalid."));
+        
+        var response = await _httpClient.GetAsync(
+            $"api/Conversations/?username={_username}&continuationToken={invalidContinuationToken}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
     
     [Fact]
     public async Task GetUserConversations_UserNotFound()
     {
-        _userConversationServiceMock.Setup(m => m.GetUserConversations(_username, 10, OrderBy.DESC, null, 0))
+        _userConversationServiceMock.Setup(m => m.GetUserConversations(
+                _username, 10, OrderBy.DESC, null, 0))
             .ThrowsAsync(new UserNotFoundException($"User {_username} was not found."));
 
-        var response = await _httpClient.GetAsync($"api/Conversations/?username={_username}");
+        var response = await _httpClient.GetAsync(
+            $"api/Conversations/?username={_username}&");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

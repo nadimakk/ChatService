@@ -21,15 +21,7 @@ public class CosmosMessageStore : IMessageStore
     
     public async Task AddMessage(string conversationId, Message message)
     {
-        if (message == null ||
-            string.IsNullOrWhiteSpace(message.MessageId) ||
-            string.IsNullOrWhiteSpace(message.SenderUsername) ||
-            string.IsNullOrWhiteSpace(message.Text) ||
-            message.UnixTime < 0
-           )
-        {
-            throw new ArgumentException($"Invalid message {message}", nameof(message));
-        }
+        ValidateMessage(message);
         
         try
         {
@@ -47,15 +39,9 @@ public class CosmosMessageStore : IMessageStore
 
     public async Task<Message> GetMessage(string conversationId, string messageId)
     {
-        if (string.IsNullOrWhiteSpace(conversationId))
-        {
-            throw new ArgumentException($"Invalid conversationId {conversationId}");
-        }
-        if (string.IsNullOrWhiteSpace(messageId))
-        {
-            throw new ArgumentException($"Invalid messageId {messageId}");
-        }
-        
+        ValidateConversationId(conversationId);
+        ValidateMessageId(messageId);
+
         try
         {
             var entity = await Container.ReadItemAsync<MessageEntity>(
@@ -81,51 +67,51 @@ public class CosmosMessageStore : IMessageStore
     public async Task<(List<Message> Messages, string NextContinuationToken)> GetMessages(
         string conversationId, int limit, OrderBy order, string? continuationToken, long lastSeenMessageTime)
     {
-        if (string.IsNullOrWhiteSpace(conversationId))
-        {
-            throw new ArgumentException("ConversationId cannot be null or empty.");
-        }
-        if (limit <= 0)
-        {
-            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
-        }
+        ValidateConversationId(conversationId);
+        ValidateLimit(limit);
+        ValidateLastSeenMessageTime(lastSeenMessageTime);
 
-        if (lastSeenMessageTime < 0)
-        {
-            throw new ArgumentException(
-                $"Invalid lastSeenMessageTime {lastSeenMessageTime}. lastSeenMessageTime must be greater or equal to 0.");
-        }
-        
         List<Message> messages = new ();
         string? nextContinuationToken = null;
         
         QueryRequestOptions options = new QueryRequestOptions();
         options.MaxItemCount = limit;
 
-        IQueryable<MessageEntity> query = Container
-            .GetItemLinqQueryable<MessageEntity>(false, continuationToken, options)
-            .Where(e => e.partitionKey == conversationId && e.UnixTime > lastSeenMessageTime);
+        try
+        {
+            IQueryable<MessageEntity> query = Container
+                .GetItemLinqQueryable<MessageEntity>(false, continuationToken, options)
+                .Where(e => e.partitionKey == conversationId && e.UnixTime > lastSeenMessageTime);
         
-        if (order == OrderBy.ASC)
-        {
-            query = query.OrderBy(e => e.UnixTime);
-        }
-        else
-        {
-            query = query.OrderByDescending(e => e.UnixTime);
-        }
+            if (order == OrderBy.ASC)
+            {
+                query = query.OrderBy(e => e.UnixTime);
+            }
+            else
+            {
+                query = query.OrderByDescending(e => e.UnixTime);
+            }
         
-        using (FeedIterator<MessageEntity> iterator = query.ToFeedIterator())
-        {
-            FeedResponse<MessageEntity> response = await iterator.ReadNextAsync();
-            var receivedUserConversations = response.Select(ToMessage);
+            using (FeedIterator<MessageEntity> iterator = query.ToFeedIterator())
+            {
+                FeedResponse<MessageEntity> response = await iterator.ReadNextAsync();
+                var receivedUserConversations = response.Select(ToMessage);
             
-            messages.AddRange(receivedUserConversations);
+                messages.AddRange(receivedUserConversations);
             
-            nextContinuationToken = response.ContinuationToken;
-        };
+                nextContinuationToken = response.ContinuationToken;
+            };
 
-        return (messages, nextContinuationToken);
+            return (messages, nextContinuationToken);
+        }
+        catch (CosmosException e)
+        {
+            if (e.StatusCode == HttpStatusCode.BadRequest)
+            {
+                throw new InvalidContinuationTokenException($"Continuation token {continuationToken} is invalid.");
+            }
+            throw;
+        }
     }
 
     public async Task<bool> ConversationPartitionExists(string conversationId)
@@ -174,5 +160,51 @@ public class CosmosMessageStore : IMessageStore
             SenderUsername = entity.SenderUsername,
             Text = entity.Text
         };
+    }
+
+    private void ValidateMessage(Message message)
+    {
+        if (message == null ||
+            string.IsNullOrWhiteSpace(message.MessageId) ||
+            string.IsNullOrWhiteSpace(message.SenderUsername) ||
+            string.IsNullOrWhiteSpace(message.Text) ||
+            message.UnixTime < 0
+           )
+        {
+            throw new ArgumentException($"Invalid message {message}", nameof(message));
+        }
+    }
+    
+    private void ValidateConversationId(string conversationId)
+    {
+        if (string.IsNullOrWhiteSpace(conversationId) || !conversationId.Contains('_'))
+        {
+            throw new ArgumentException($"Invalid conversationId {conversationId}.");
+        }
+    }
+
+    private void ValidateMessageId(string messageId)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+        {
+            throw new ArgumentException($"Invalid messageId {messageId}");
+        }
+    }
+    
+    private void ValidateLimit(int limit)
+    {
+        if (limit <= 0)
+        {
+            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
+        }
+    }
+    
+    private void ValidateLastSeenMessageTime(long lastSeenMessageTime)
+    {
+        if (lastSeenMessageTime < 0)
+        {
+            throw new ArgumentException(
+                $"Invalid lastSeenMessageTime {lastSeenMessageTime}. LastSeenMessageTime must be greater or equal to 0.");
+        }
     }
 }

@@ -18,15 +18,8 @@ public class BlobImageStore : IImageStore
 
     public async Task<string> UploadImage(Image image)
     {
-        
-        string contentType = image.ContentType.ToLower();
-        if (contentType != "image/jpg" &&
-            contentType != "image/jpeg" &&
-            contentType != "image/png")
-        {
-            throw new ArgumentException("File type is not an image.");
-        }
-        
+        ValidateImage(image);
+
         string imageId = Guid.NewGuid().ToString();
         BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);
         BlobHttpHeaders headers = new BlobHttpHeaders
@@ -70,5 +63,16 @@ public class BlobImageStore : IImageStore
     {
         BlobClient blobClient = BlobContainerClient.GetBlobClient(id);
         return await blobClient.ExistsAsync();
+    }
+
+    private void ValidateImage(Image image)
+    {
+        string contentType = image.ContentType.ToLower();
+        if (contentType != "image/jpg" &&
+            contentType != "image/jpeg" &&
+            contentType != "image/png")
+        {
+            throw new ArgumentException("File type is not an image.");
+        }
     }
 }

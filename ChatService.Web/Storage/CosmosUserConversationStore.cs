@@ -21,14 +21,7 @@ public class CosmosUserConversationStore : IUserConversationStore
 
     public async Task CreateUserConversation(UserConversation userConversation)
     {
-        if (userConversation == null ||
-            string.IsNullOrWhiteSpace(userConversation.Username) ||
-            string.IsNullOrWhiteSpace(userConversation.ConversationId) ||
-            userConversation.LastModifiedTime < 0
-           )
-        {
-            throw new ArgumentException($"Invalid user conversation {userConversation}", nameof(userConversation));
-        }
+        ValidateUserConversation(userConversation);
 
         try
         {
@@ -46,15 +39,9 @@ public class CosmosUserConversationStore : IUserConversationStore
 
     public async Task<UserConversation> GetUserConversation(string username, string conversationId)
     {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            throw new ArgumentException($"Invalid username {username}");
-        }
+        ValidateUsername(username);
+        ValidateConversationId(conversationId);
 
-        if (string.IsNullOrWhiteSpace(conversationId))
-        {
-            throw new ArgumentException($"Invalid conversationId {conversationId}");
-        }
         try
         {
             var entity = await Container.ReadItemAsync<UserConversationEntity>(
@@ -80,20 +67,9 @@ public class CosmosUserConversationStore : IUserConversationStore
     public async Task<(List<UserConversation> UserConversations, string NextContinuationToken)> GetUserConversations
         (string username, int limit, OrderBy order, string? continuationToken, long lastSeenConversationTime)
     {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            throw new ArgumentException("Username cannot be null or empty.");
-        }
-        if (limit <= 0)
-        {
-            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
-        }
-
-        if (lastSeenConversationTime < 0)
-        {
-            throw new ArgumentException(
-                $"Invalid lastSeenConversationTime {lastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
-        }
+        ValidateUsername(username);
+        ValidateLimit(limit);
+        ValidateLastSeenMessageTime(lastSeenConversationTime);
         
         List<UserConversation> userConversations = new ();
         string? nextContinuationToken = null;
@@ -101,30 +77,41 @@ public class CosmosUserConversationStore : IUserConversationStore
         QueryRequestOptions options = new QueryRequestOptions();
         options.MaxItemCount = limit;
 
-        IQueryable<UserConversationEntity> query = Container
-            .GetItemLinqQueryable<UserConversationEntity>(false, continuationToken, options)
-            .Where(e => e.partitionKey == username && e.LastModifiedTime > lastSeenConversationTime);
-        
-        if (order == OrderBy.ASC)
+        try
         {
-            query = query.OrderBy(e => e.LastModifiedTime);
-        }
-        else
-        {
-            query = query.OrderByDescending(e => e.LastModifiedTime);
-        }
-        
-        using (FeedIterator<UserConversationEntity> iterator = query.ToFeedIterator())
-        {
-            FeedResponse<UserConversationEntity> response = await iterator.ReadNextAsync();
-            var receivedUserConversations = response.Select(ToUserConversation);
+            IQueryable<UserConversationEntity> query = Container
+                .GetItemLinqQueryable<UserConversationEntity>(false, continuationToken, options)
+                .Where(e => e.partitionKey == username && e.LastModifiedTime > lastSeenConversationTime);
             
-            userConversations.AddRange(receivedUserConversations);
+            if (order == OrderBy.ASC)
+            {
+                query = query.OrderBy(e => e.LastModifiedTime);
+            }
+            else
+            {
+                query = query.OrderByDescending(e => e.LastModifiedTime);
+            }
+        
+            using (FeedIterator<UserConversationEntity> iterator = query.ToFeedIterator())
+            {
+                FeedResponse<UserConversationEntity> response = await iterator.ReadNextAsync();
+                var receivedUserConversations = response.Select(ToUserConversation);
             
-            nextContinuationToken = response.ContinuationToken;
-        };
+                userConversations.AddRange(receivedUserConversations);
+            
+                nextContinuationToken = response.ContinuationToken;
+            };
 
-        return (userConversations, nextContinuationToken);
+            return (userConversations, nextContinuationToken);
+        }
+        catch (CosmosException e)
+        {
+            if (e.StatusCode == HttpStatusCode.BadRequest)
+            {
+                throw new InvalidContinuationTokenException($"Continuation token {continuationToken} is invalid.");
+            }
+            throw;
+        }
     }
 
     public async Task DeleteUserConversation(string username, string conversationId)
@@ -161,5 +148,50 @@ public class CosmosUserConversationStore : IUserConversationStore
             ConversationId = entity.id,
             LastModifiedTime = entity.LastModifiedTime
         };
+    }
+
+    private void ValidateUserConversation(UserConversation userConversation)
+    {
+        if (userConversation == null ||
+            string.IsNullOrWhiteSpace(userConversation.Username) ||
+            string.IsNullOrWhiteSpace(userConversation.ConversationId) ||
+            userConversation.LastModifiedTime < 0
+           )
+        {
+            throw new ArgumentException($"Invalid user conversation {userConversation}", nameof(userConversation));
+        }
+    }
+    
+    private void ValidateUsername(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException($"Invalid username {username}");
+        }
+    }
+    
+    private void ValidateConversationId(string conversationId)
+    {
+        if (string.IsNullOrWhiteSpace(conversationId) || !conversationId.Contains('_'))
+        {
+            throw new ArgumentException($"Invalid conversationId {conversationId}.");
+        }
+    }
+    
+    private void ValidateLimit(int limit)
+    {
+        if (limit <= 0)
+        {
+            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
+        }
+    }
+    
+    private void ValidateLastSeenMessageTime(long lastSeenConversationTime)
+    {
+        if (lastSeenConversationTime < 0)
+        {
+            throw new ArgumentException(
+                $"Invalid lastSeenConversationTime {lastSeenConversationTime}. LastSeenConversationTime must be greater or equal to 0.");
+        }
     }
 }

@@ -11,7 +11,7 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
 {
     private readonly IMessageStore _messageStore;
 
-    private readonly string _conversationId = Guid.NewGuid().ToString();
+    private readonly string _conversationId = Guid.NewGuid().ToString() + "_";
     
     private readonly Message _message1 = new Message
     {
@@ -201,6 +201,16 @@ public class CosmosMessageStoreTests : IClassFixture<WebApplicationFactory<Progr
     {
         Assert.ThrowsAsync<ArgumentException>(() =>
             _messageStore.GetMessages(conversationId, limit, OrderBy.ASC, null, lastSeenMessageTime));
+    }
+    
+    [Fact]
+    public async Task GetMessages_InvalidContinuationToken()
+    {
+        string invalidContinuationToken = Guid.NewGuid().ToString();
+
+        await Assert.ThrowsAsync<InvalidContinuationTokenException>(
+            () => _messageStore.GetMessages(
+                _conversationId, 10, OrderBy.DESC, invalidContinuationToken, 0));
     }
 
     [Fact]

@@ -113,8 +113,14 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     {
         _sendMessageRequest.SenderUsername = Guid.NewGuid().ToString();
         
-        await Assert.ThrowsAsync<UserNotParticipantException>(() => _messageService.AddMessage(
-            _conversationId, true, _sendMessageRequest));
+        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+            .ReturnsAsync(true);
+        
+        _profileServiceMock.Setup(m => m.ProfileExists(_sendMessageRequest.SenderUsername))
+            .ReturnsAsync(true);
+        
+        await Assert.ThrowsAsync<UserNotParticipantException>(
+            () => _messageService.AddMessage(_conversationId, true, _sendMessageRequest));
     }
 
     [Fact]

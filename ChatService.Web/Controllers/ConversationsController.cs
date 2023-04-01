@@ -36,28 +36,28 @@ public class ConversationsController : ControllerBase
             {
                 GetUserConversationsServiceResult result = await _userConversationService.GetUserConversations(
                     username, limit, orderBy, continuationToken, lastSeenConversationTime);
-            
+
                 _logger.LogInformation("Fetched conversations of user {Username}", username);
 
                 string nextUri = "";
                 if (result.NextContinuationToken != null)
                 {
                     nextUri = "/api/conversations" +
-                            $"?username={username}" +
-                            $"&limit={limit}" +
-                            $"&lastSeenConversationTime={lastSeenConversationTime}" +
-                            $"&continuationToken={result.NextContinuationToken}";
+                              $"?username={username}" +
+                              $"&limit={limit}" +
+                              $"&lastSeenConversationTime={lastSeenConversationTime}" +
+                              $"&continuationToken={result.NextContinuationToken}";
                 }
-        
+
                 GetUserConversationsResponse response = new GetUserConversationsResponse
                 {
                     Conversations = result.Conversations,
                     NextUri = nextUri
                 };
-        
+
                 return Ok(response);
             }
-            catch (ArgumentException e)
+            catch (Exception e) when (e is ArgumentException || e is InvalidContinuationTokenException)
             {
                 _logger.LogError(e, "Error getting user conversations: {ErrorMessage}", e.Message);
                 return BadRequest(e.Message);
@@ -145,7 +145,7 @@ public class ConversationsController : ControllerBase
         
                 return Ok(response);
             }
-            catch (ArgumentException e)
+            catch (Exception e) when (e is ArgumentException || e is InvalidContinuationTokenException)
             {
                 _logger.LogError(e, "Error getting messages: {ErrorMessage}", e.Message);
                 return BadRequest(e.Message);

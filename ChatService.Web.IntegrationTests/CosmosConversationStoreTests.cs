@@ -14,28 +14,28 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     private static readonly UserConversation _userConversation = new UserConversation
     {
         Username = Guid.NewGuid().ToString(),
-        ConversationId = Guid.NewGuid().ToString(),
+        ConversationId = Guid.NewGuid().ToString() + "_",
         LastModifiedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
     };
     
     private readonly UserConversation _userConversation1 = new UserConversation
     {
         Username = _userConversation.Username,
-        ConversationId = Guid.NewGuid().ToString(),
+        ConversationId = Guid.NewGuid().ToString() + "_",
         LastModifiedTime = 100
     };
     
     private readonly UserConversation _userConversation2 = new UserConversation
     {
         Username = _userConversation.Username,
-        ConversationId = Guid.NewGuid().ToString(),
+        ConversationId = Guid.NewGuid().ToString() + "_",
         LastModifiedTime = 200
     };
     
     private readonly UserConversation _userConversation3 = new UserConversation
     {
         Username = _userConversation.Username,
-        ConversationId = Guid.NewGuid().ToString(),
+        ConversationId = Guid.NewGuid().ToString() + "_",
         LastModifiedTime = 300
     };
 
@@ -207,6 +207,16 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     {
         await Assert.ThrowsAsync<ArgumentException>(
             () => _userConversationStore.GetUserConversations(username, limit, OrderBy.ASC, null, lastSeenConversationTime));
+    }
+
+    [Fact]
+    public async Task GetUserConversations_InvalidContinuationToken()
+    {
+        string invalidContinuationToken = Guid.NewGuid().ToString();
+
+        await Assert.ThrowsAsync<InvalidContinuationTokenException>(
+            () => _userConversationStore.GetUserConversations(
+                _userConversation.Username, 10, OrderBy.DESC, invalidContinuationToken, 0));
     }
 
     private async Task AddMultipleUserConversations(params UserConversation[] userConversations)
