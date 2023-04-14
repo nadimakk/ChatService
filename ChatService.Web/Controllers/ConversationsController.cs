@@ -1,5 +1,4 @@
 using System.Net;
-using System.Web;
 using ChatService.Web.Dtos;
 using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
@@ -50,7 +49,7 @@ public class ConversationsController : ControllerBase
                           $"?username={username}" +
                           $"&limit={limit}" +
                           $"&lastSeenConversationTime={lastSeenConversationTime}" +
-                          $"&continuationToken={result.NextContinuationToken}";
+                          $"&continuationToken={WebUtility.UrlEncode(result.NextContinuationToken)}";
             }
 
             GetUserConversationsResponse response = new()
@@ -133,8 +132,8 @@ public class ConversationsController : ControllerBase
             if (result.NextContinuationToken != null)
             { 
                 nextUri = $"/api/conversations/{conversationId}/messages" +
-                        $"&limit={limit}" +
-                        $"&continuationToken={result.NextContinuationToken}" +
+                        $"?limit={limit}" +
+                        $"&continuationToken={WebUtility.UrlEncode(result.NextContinuationToken)}" +
                         $"&lastSeenConversationTime={lastSeenConversationTime}";
             }
             

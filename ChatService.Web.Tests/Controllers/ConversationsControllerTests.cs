@@ -95,7 +95,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
                          $"?username={_username}" +
                          $"&limit={_getUserConversationsParameters.Limit}" +
                          "&lastSeenConversationTime=0" +
-                         $"&continuationToken={_nextContinuationToken}";
+                         $"&continuationToken={WebUtility.UrlEncode(_nextContinuationToken)}";
 
         var response = await _httpClient.GetAsync($"api/Conversations/?username={_username}");
         var json = await response.Content.ReadAsStringAsync();
@@ -241,8 +241,8 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             .ReturnsAsync(getMessagesServiceResult);
         
         string nextUri = $"/api/conversations/{_conversationId}/messages" +
-                         $"&limit={_getMessagesParameters.Limit}" +
-                         $"&continuationToken={_nextContinuationToken}" +
+                         $"?limit={_getMessagesParameters.Limit}" +
+                         $"&continuationToken={WebUtility.UrlEncode(_nextContinuationToken)}" +
                          "&lastSeenConversationTime=0";
 
         var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
