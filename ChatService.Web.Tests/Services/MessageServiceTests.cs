@@ -17,19 +17,26 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly IMessageService _messageService;
 
+    private GetMessagesParameters _parameters = new()
+    {
+        Limit = 1,
+        Order = OrderBy.ASC,
+        ContinuationToken = null,
+        LastSeenMessageTime = 0
+    };
+    
     private static readonly string _senderUsername = Guid.NewGuid().ToString();
-    
     private static readonly string _recipientUsername = Guid.NewGuid().ToString();
+    private static readonly string _conversationId = 
+        ConversationIdUtilities.GenerateConversationId(_senderUsername, _recipientUsername);
     
-    private static readonly string _conversationId = ConversationIdUtilities.GenerateConversationId(_senderUsername, _recipientUsername);
-
     private readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-    private readonly SendMessageRequest _sendMessageRequest = new SendMessageRequest
+    private readonly SendMessageRequest _sendMessageRequest = new()
     {
         MessageId = Guid.NewGuid().ToString(),
         SenderUsername = _senderUsername,
-        Text = "Hello"
+        Text = Guid.NewGuid().ToString()
     };
     
     public MessageServiceTests(WebApplicationFactory<Program> factory)
@@ -55,7 +62,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
             .ReturnsAsync(true);
 
-        Message message = new Message
+        Message message = new()
         {
             MessageId = _sendMessageRequest.MessageId,
             UnixTime = _unixTimeNow,
@@ -63,7 +70,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
             Text = _sendMessageRequest.Text
         };
 
-        SendMessageResponse expectedSendMessageResponse = new SendMessageResponse
+        SendMessageResponse expectedSendMessageResponse = new()
         {
             CreatedUnixTime = _unixTimeNow
         };
@@ -97,7 +104,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task AddMessage_InvalidArguments(
         string conversationId, string messageId, string senderUsername, string text)
     {
-        SendMessageRequest sendMessageRequest = new SendMessageRequest
+        SendMessageRequest sendMessageRequest = new()
         {
             MessageId = messageId,
             SenderUsername = senderUsername,
@@ -129,7 +136,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
             .ReturnsAsync(false);
         
-        await Assert.ThrowsAsync<ProfileNotFoundException>(() => _messageService.AddMessage(
+        await Assert.ThrowsAsync<UserNotFoundException>(() => _messageService.AddMessage(
             _conversationId, true, _sendMessageRequest));
     }
     
@@ -152,39 +159,32 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
             .ReturnsAsync(true);
 
-        List<Message> messages = new List<Message> { 
-            new Message
-            {
-                MessageId = Guid.NewGuid().ToString(),
-                UnixTime = _unixTimeNow,
-                SenderUsername = _senderUsername,
-                Text = "Hello"
-            },
-            new Message
-            {
-                MessageId = Guid.NewGuid().ToString(),
-                UnixTime = _unixTimeNow,
-                SenderUsername = _senderUsername,
-                Text = "Good Bye"
-            }
-        };
+        List<Message> messages = new() { CreateMessage(), CreateMessage() };
 
         string nextContinuationToken = Guid.NewGuid().ToString();
+        
+        GetMessagesResult getMessagesResult = new()
+        {
+            Messages = messages,
+            NextContinuationToken = nextContinuationToken
+        };
+        
+        _messageStoreMock.Setup(m => m.GetMessages(_conversationId, _parameters))
+            .ReturnsAsync(getMessagesResult);
 
-        _messageStoreMock.Setup(m => m.GetMessages(_conversationId, 10, OrderBy.DESC, null, 0))
-            .ReturnsAsync((messages, nextContinuationToken));
-
-        GetMessagesServiceResult expectedGetMessagesServiceResult = new GetMessagesServiceResult
+        GetMessagesResult expectedGetMessagesResult = new()
         {
             Messages = messages,
             NextContinuationToken = nextContinuationToken
         };
 
-        GetMessagesServiceResult receivedGetMessagesServiceResult = await _messageService.GetMessages(
-            _conversationId, 10, OrderBy.DESC, null, 0);
+        _parameters.Limit = 10;
+        _parameters.Order = OrderBy.DESC;
+        GetMessagesResult receivedGetMessagesResult = await _messageService.GetMessages(
+            _conversationId, _parameters);
         
-        Assert.Equal(expectedGetMessagesServiceResult.Messages, receivedGetMessagesServiceResult.Messages);
-        Assert.Equal(expectedGetMessagesServiceResult.NextContinuationToken, receivedGetMessagesServiceResult.NextContinuationToken);
+        Assert.Equal(expectedGetMessagesResult.Messages, receivedGetMessagesResult.Messages);
+        Assert.Equal(expectedGetMessagesResult.NextContinuationToken, receivedGetMessagesResult.NextContinuationToken);
     }
 
     [Theory]
@@ -196,8 +196,10 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("conversationId", 1, -1)]
     public async Task GetMessages_InvalidArguments(string conversationId, int limit, long lastSeenConversationTime)
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _messageService.GetMessages(conversationId, limit,
-            OrderBy.DESC, null, lastSeenConversationTime));
+        _parameters.Limit = limit;
+        _parameters.LastSeenMessageTime = lastSeenConversationTime;
+        
+        await Assert.ThrowsAsync<ArgumentException>(() => _messageService.GetMessages(conversationId, _parameters));
     }
     
     [Fact]
@@ -207,6 +209,17 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
             .ReturnsAsync(false);
         
         await Assert.ThrowsAsync<ConversationDoesNotExistException>(() => _messageService.GetMessages(
-            _conversationId, 1, OrderBy.DESC, null, 0));
+            _conversationId, _parameters));
+    }
+
+    private Message CreateMessage()
+    {
+        return new Message()
+        {
+            MessageId = Guid.NewGuid().ToString(),
+            UnixTime = _unixTimeNow,
+            SenderUsername = _senderUsername,
+            Text = Guid.NewGuid().ToString()
+        };
     }
 }

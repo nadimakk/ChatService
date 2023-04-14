@@ -1,6 +1,7 @@
 using ChatService.Web.Dtos;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage;
+using ChatService.Web.Utilities;
 
 namespace ChatService.Web.Services;
 
@@ -23,7 +24,7 @@ public class ProfileService : IProfileService
         
         if (profile == null)
         {
-            throw new ProfileNotFoundException(
+            throw new UserNotFoundException(
                 $"A profile with the username {username} was not found.");
         }
 
@@ -33,13 +34,7 @@ public class ProfileService : IProfileService
     public async Task AddProfile(Profile profile)
     {
         ValidateProfile(profile);
-
-        bool imageExists = await _imageService.ImageExists(profile.ProfilePictureId);
-        if (!imageExists)
-        {
-            throw new ImageNotFoundException($"Profile picture with ID {profile.ProfilePictureId} was not found.");
-        }
-        
+        await ThrowIfImageNotFound(profile.ProfilePictureId);
         await _profileStore.AddProfile(profile);
     }
 
@@ -58,10 +53,12 @@ public class ProfileService : IProfileService
         Profile? profile = await GetProfile(username);
         if (profile == null)
         {
-            throw new ProfileNotFoundException($"Profile with username {username} does not exist.");
+            throw new UserNotFoundException($"A user with the username {username} was not found.");
         }
-        await _imageService.DeleteImage(profile.ProfilePictureId);
-        await _profileStore.DeleteProfile(username);
+        await Task.WhenAll(
+            _imageService.DeleteImage(profile.ProfilePictureId),
+            _profileStore.DeleteProfile(username)
+        );
     }
 
     private void ValidateUsername(string username)
@@ -83,9 +80,16 @@ public class ProfileService : IProfileService
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
-        if (profile.Username.Contains('_'))
+        ConversationIdUtilities.ValidateUsername(profile.Username);
+    }
+    
+    private async Task ThrowIfImageNotFound(string profilePictureId)
+    {
+        bool imageExists = await _imageService.ImageExists(profilePictureId);
+        if (!imageExists)
         {
-            throw new InvalidUsernameException($"Username {profile.Username} is invalid. Usernames cannot have an underscore.");
+            throw new ImageNotFoundException($"Profile picture with ID {profilePictureId} was not found.");
         }
     }
+    
 }

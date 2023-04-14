@@ -1,6 +1,6 @@
 namespace ChatService.Web.Configuration;
 
-public record BlobSettings
+public record BlobStorageSettings
 {
     public string ConnectionString { get; init; }
 }

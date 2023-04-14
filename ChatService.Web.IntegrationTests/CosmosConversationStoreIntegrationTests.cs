@@ -7,59 +7,53 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ChatService.Web.IntegrationTests;
 
-public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
+public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly IUserConversationStore _userConversationStore;
     
-    private static readonly UserConversation _userConversation = new UserConversation
+    private static readonly string _username = Guid.NewGuid().ToString();
+    
+    private GetUserConversationsParameters _parameters = new()
     {
-        Username = Guid.NewGuid().ToString(),
-        ConversationId = Guid.NewGuid().ToString() + "_",
-        LastModifiedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        Limit = 10,
+        Order = OrderBy.DESC,
+        ContinuationToken = null,
+        LastSeenConversationTime = 0
     };
     
-    private readonly UserConversation _userConversation1 = new UserConversation
-    {
-        Username = _userConversation.Username,
-        ConversationId = Guid.NewGuid().ToString() + "_",
-        LastModifiedTime = 100
+    private static readonly UserConversation _userConversation = CreateUserConversation(
+        lastModifiedTime: DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+    private static readonly UserConversation _userConversation1 = CreateUserConversation(lastModifiedTime: 100);
+    private static readonly UserConversation _userConversation2 = CreateUserConversation(lastModifiedTime: 200);
+    private static readonly UserConversation _userConversation3 = CreateUserConversation(lastModifiedTime: 300);
+    
+    private List<UserConversation> _userConversations = new() {
+        _userConversation1, _userConversation2, _userConversation3, _userConversation
     };
     
-    private readonly UserConversation _userConversation2 = new UserConversation
-    {
-        Username = _userConversation.Username,
-        ConversationId = Guid.NewGuid().ToString() + "_",
-        LastModifiedTime = 200
-    };
-    
-    private readonly UserConversation _userConversation3 = new UserConversation
-    {
-        Username = _userConversation.Username,
-        ConversationId = Guid.NewGuid().ToString() + "_",
-        LastModifiedTime = 300
-    };
-
-    public CosmosConversationStoreTests(WebApplicationFactory<Program> factory)
+    public CosmosConversationStoreIntegrationTests(WebApplicationFactory<Program> factory)
     {
         _userConversationStore = factory.Services.GetRequiredService<IUserConversationStore>();
     }
 
     [Fact]
-    public async Task CreateUserConversation_Successful()
+    public async Task CreateUserConversation_Success()
     {
         await _userConversationStore.CreateUserConversation(_userConversation);
+        var receivedConversation = await _userConversationStore.GetUserConversation(
+            _userConversation.Username, _userConversation.ConversationId);
         
-        Assert.Equal(_userConversation, await _userConversationStore.GetUserConversation(_userConversation.Username, _userConversation.ConversationId));
+        Assert.Equal(_userConversation, receivedConversation);
     }
     
     [Theory]
-    [InlineData(null, "dummy_conversationId", 100)]
-    [InlineData("", "dummy_conversationId", 100)]
-    [InlineData(" ", "dummy_conversationId", 100)]
+    [InlineData(null, "dummyConversationId", 100)]
+    [InlineData("", "dummyConversationId", 100)]
+    [InlineData(" ", "dummyConversationId", 100)]
     [InlineData("foobar", null, 100)]
     [InlineData("foobar", "", 100)]
     [InlineData("foobar", " ", 100)]
-    [InlineData("foobar", "dummy_conversationId", -100)]
+    [InlineData("foobar", "dummyConversationId", -100)]
     public async Task CreateUserConversation_InvalidArguments(string username, string conversationId, long lastModifiedTime)
     {
         UserConversation userConversation = new()
@@ -68,7 +62,6 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
             ConversationId = conversationId,
             LastModifiedTime = lastModifiedTime
         };
-
         await Assert.ThrowsAsync<ArgumentException>(
             () => _userConversationStore.CreateUserConversation(userConversation));
     }
@@ -77,15 +70,14 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     public async Task CreateUserConversation_ConversationAlreadyExists()
     {
         await _userConversationStore.CreateUserConversation(_userConversation);
-
         await Assert.ThrowsAsync<UserConversationExistsException>(
             () => _userConversationStore.CreateUserConversation(_userConversation));
     }
 
     [Theory]
-    [InlineData(null, "dummy_conversationId")]
-    [InlineData("", "dummy_conversationId")]
-    [InlineData(" ", "dummy_conversationId")]
+    [InlineData(null, "dummyConversationId")]
+    [InlineData("", "dummyConversationId")]
+    [InlineData(" ", "dummyConversationId")]
     [InlineData("foobar", null)]
     [InlineData("foobar", "")]
     [InlineData("foobar", " ")]
@@ -97,26 +89,27 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     
     [Fact]
     public async Task GetUserConversation_ConversationNotFound()
-    {
-        await Assert.ThrowsAsync<UserConversationNotFoundException>(
-            () => _userConversationStore.GetUserConversation(_userConversation.Username, _userConversation.ConversationId));
+    { 
+        Assert.Null(
+            await _userConversationStore.GetUserConversation(_userConversation.Username, _userConversation.ConversationId));
     }
     
     [Fact]
     public async Task GetUserConversations_Limit()
     {
         await AddMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
-        
-        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, 1, OrderBy.ASC, null, 1);
-        Assert.Equal(1, response.UserConversations.Count);
 
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, 2, OrderBy.ASC, null, 1);
+        _parameters.Limit = 1;
+        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        Assert.Single(response.UserConversations);
+
+        _parameters.Limit = 2;
+        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
         Assert.Equal(2, response.UserConversations.Count);
 
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, 3, OrderBy.ASC, null, 1);
+        _parameters.Limit = 3;
+        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
         Assert.Equal(3, response.UserConversations.Count);
-        
-        await DeleteMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
     }
 
     [Theory]
@@ -129,8 +122,9 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
 
         await AddMultipleUserConversations(
             _userConversation, _userConversation1, _userConversation2, _userConversation3);
-        
-        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, 10, orderBy, null, 0);
+
+        _parameters.Order = orderBy;
+        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
         
         if (orderBy == OrderBy.ASC)
         {
@@ -141,36 +135,35 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
             userConversationsExpected.Reverse();   
             Assert.Equal(userConversationsExpected, response.UserConversations);
         }
-        
-        await DeleteMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
     }
 
     [Fact]
     public async Task GetUserConversations_ContinuationTokenValidity()
     {
         await AddMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
-        
-        var response = await _userConversationStore.GetUserConversations(
-            _userConversation.Username, 1, OrderBy.ASC, null, 1);
-        
-        Assert.Equal(_userConversation1, response.UserConversations.ElementAt(0));
 
-        var nextContinuation = response.NextContinuationToken; 
-        Assert.NotNull(nextContinuation);
+        _parameters.Limit = 1;
+
+        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
         
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, 1, OrderBy.ASC, nextContinuation, 1);
+        Assert.Equal(_userConversation3, response.UserConversations.ElementAt(0));
+
+        var nextContinuationToken = response.NextContinuationToken; 
+        Assert.NotNull(nextContinuationToken);
+
+        _parameters.ContinuationToken = nextContinuationToken;
+        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
         Assert.Equal(_userConversation2, response.UserConversations.ElementAt(0));
         
-        nextContinuation = response.NextContinuationToken; 
-        Assert.NotNull(nextContinuation);
+        nextContinuationToken = response.NextContinuationToken; 
+        Assert.NotNull(nextContinuationToken);
+
+        _parameters.ContinuationToken = nextContinuationToken;
+        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        Assert.Equal(_userConversation1, response.UserConversations.ElementAt(0));
         
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, 1, OrderBy.ASC, nextContinuation, 1);
-        Assert.Equal(_userConversation3, response.UserConversations.ElementAt(0));
-        
-        nextContinuation = response.NextContinuationToken;
-        Assert.Null(nextContinuation);
-        
-        await DeleteMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
+        nextContinuationToken = response.NextContinuationToken;
+        Assert.Null(nextContinuationToken);
     }
 
     [Theory]
@@ -183,17 +176,20 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
         await AddMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3, _userConversation);
 
         List<UserConversation> userConversationsExpected = new();
-
-        if(_userConversation1.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation1); }
-        if(_userConversation2.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation2);}
-        if(_userConversation3.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation3);}
-        if(_userConversation.LastModifiedTime > lastSeenConversationTime) { userConversationsExpected.Add(_userConversation);}
         
-        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, 10, OrderBy.ASC, null, lastSeenConversationTime);
+        foreach (UserConversation userConversation in _userConversations)
+        {
+            if (userConversation.LastModifiedTime > lastSeenConversationTime)
+            {
+                userConversationsExpected.Add(userConversation);
+            }
+        }
+        userConversationsExpected.Reverse();
+        
+        _parameters.LastSeenConversationTime = lastSeenConversationTime;
+        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
         
         Assert.Equal(userConversationsExpected, response.UserConversations);
-
-        await DeleteMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
     }
   
     [Theory]
@@ -205,18 +201,20 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
     [InlineData("username", 10, -100)]
     public async Task GetUserConversations_InvalidArguments(string username, int limit, long lastSeenConversationTime)
     {
+        _parameters.Limit = limit;
+        _parameters.LastSeenConversationTime = lastSeenConversationTime;
         await Assert.ThrowsAsync<ArgumentException>(
-            () => _userConversationStore.GetUserConversations(username, limit, OrderBy.ASC, null, lastSeenConversationTime));
+            () => _userConversationStore.GetUserConversations(username, _parameters));
     }
 
     [Fact]
     public async Task GetUserConversations_InvalidContinuationToken()
     {
         string invalidContinuationToken = Guid.NewGuid().ToString();
-
+        _parameters.ContinuationToken = invalidContinuationToken;
+        
         await Assert.ThrowsAsync<InvalidContinuationTokenException>(
-            () => _userConversationStore.GetUserConversations(
-                _userConversation.Username, 10, OrderBy.DESC, invalidContinuationToken, 0));
+            () => _userConversationStore.GetUserConversations(_userConversation.Username, _parameters));
     }
 
     private async Task AddMultipleUserConversations(params UserConversation[] userConversations)
@@ -239,14 +237,16 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
         return list;
     }
     
-    private async Task DeleteMultipleUserConversations(params UserConversation[] userConversations)
+    private static UserConversation CreateUserConversation(long lastModifiedTime)
     {
-        foreach (UserConversation userConversation in userConversations)
+        return new UserConversation
         {
-            await _userConversationStore.DeleteUserConversation(userConversation.Username, userConversation.ConversationId);
-        }
+            Username = _username,
+            ConversationId = Guid.NewGuid().ToString(),
+            LastModifiedTime = lastModifiedTime
+        };
     }
-
+    
     public Task InitializeAsync()
     {
         return Task.CompletedTask;
@@ -254,6 +254,8 @@ public class CosmosConversationStoreTests : IClassFixture<WebApplicationFactory<
 
     public async Task DisposeAsync()
     {
-        await _userConversationStore.DeleteUserConversation(_userConversation.Username, _userConversation.ConversationId);
+        await Task.WhenAll(_userConversations.Select(
+            userConversation => _userConversationStore.DeleteUserConversation(
+                    userConversation.Username, userConversation.ConversationId)));
     }
 }

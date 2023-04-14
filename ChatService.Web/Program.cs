@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<CosmosSettings>(builder.Configuration.GetSection("Cosmos"));
-builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobStorage"));
+builder.Services.Configure<BlobStorageSettings>(builder.Configuration.GetSection("BlobStorage"));
 
 builder.Services.AddSingleton<IProfileStore, CosmosProfileStore>();
 builder.Services.AddSingleton<IImageStore, BlobImageStore>();
@@ -22,7 +22,7 @@ builder.Services.AddSingleton(sp =>
 });
 builder.Services.AddSingleton(sp =>
     {
-        var blobOptions = sp.GetRequiredService<IOptions<BlobSettings>>();
+        var blobOptions = sp.GetRequiredService<IOptions<BlobStorageSettings>>();
         return new BlobServiceClient(blobOptions.Value.ConnectionString);
     }
 );

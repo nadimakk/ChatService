@@ -27,12 +27,10 @@ public class ProfilesController : ControllerBase
             try
             {
                 var profile = await _profileService.GetProfile(username);
-                _logger.LogInformation("Profile of {Username} fetched.", username);
                 return Ok(profile);
             }
-            catch (ProfileNotFoundException e)
+            catch (UserNotFoundException e)
             {
-                _logger.LogError(e, "Error finding profile: {ErrorMessage}", e.Message);
                 return NotFound(e.Message);
             }
         }
@@ -41,7 +39,7 @@ public class ProfilesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Profile>> PostProfile(Profile profile)
     {
-        using (_logger.BeginScope("{Profile}", profile))
+        using (_logger.BeginScope("{Username}", profile.Username))
         {
             try
             {
@@ -51,7 +49,6 @@ public class ProfilesController : ControllerBase
             }
             catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException || e is InvalidUsernameException)
             {
-                _logger.LogError(e, "Error posting profile: {ErrorMessage}", e.Message);
                 return BadRequest(e.Message);
             }
             catch (UsernameTakenException e)

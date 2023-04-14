@@ -15,7 +15,7 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly Mock<IImageStore> _imageStoreMock = new();
     private readonly IProfileService _profileService;
     
-    private readonly Profile _profile = new Profile
+    private readonly Profile _profile = new()
     {
         Username = "foobar",
         FirstName = "Foo",
@@ -89,7 +89,7 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("foobar", "Foo", "Bar"," ")]
     public async Task AddNewProfile_InvalidArgs(string username, string firstName, string lastName, string profilePictureId)
     {
-        Profile profile = new Profile
+        Profile profile = new()
         {
             Username = username,
             FirstName = firstName,
@@ -114,7 +114,7 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AddNewProfile_InvalidUsername()
     {
-        Profile profile = new Profile
+        Profile profile = new()
         {
             Username = "username_with_underscore",
             FirstName = "firstName",
@@ -149,7 +149,7 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task DeleteProfile_ProfileNotFound()
     {
-        await Assert.ThrowsAsync<ProfileNotFoundException>(
+        await Assert.ThrowsAsync<UserNotFoundException>(
             async () => await _profileService.DeleteProfile(_profile.Username));
         
         _imageStoreMock.Verify(m => m.DeleteImage(_profile.ProfilePictureId), Times.Never);

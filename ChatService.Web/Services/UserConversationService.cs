@@ -8,7 +8,6 @@ namespace ChatService.Web.Services;
 
 public class UserConversationService : IUserConversationService
 {
-
     private readonly IMessageService _messageService;
     private readonly IUserConversationStore _userConversationStore;
     private readonly IProfileService _profileService;
@@ -21,88 +20,63 @@ public class UserConversationService : IUserConversationService
         _profileService = profileService;
     }
 
-    public async Task<StartConversationServiceResult> CreateConversation(StartConversationRequest request)
+    public async Task<StartConversationResult> CreateConversation(StartConversationRequest request)
     {
         ValidateStartConversationRequest(request);
-
+        await EnsureThatParticipantsExist(request.Participants);
+        
         string username1 = request.Participants.ElementAt(0);
         string username2 = request.Participants.ElementAt(1);
-
-        if (!await _profileService.ProfileExists(username1))
-        {
-            throw new ProfileNotFoundException($"A profile with the username {username1} was not found.");
-        }
-
-        if (!await _profileService.ProfileExists(username2))
-        {
-            throw new ProfileNotFoundException($"A profile with the username {username2} was not found.");
-        }
-
         string conversationId = ConversationIdUtilities.GenerateConversationId(username1, username2);
 
-        long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-        SendMessageRequest sendMessageRequest = new SendMessageRequest
+        SendMessageRequest sendMessageRequest = new()
         {
             MessageId = request.FirstMessage.MessageId,
             SenderUsername = request.FirstMessage.SenderUsername,
             Text = request.FirstMessage.Text
         };
         await _messageService.AddFirstMessage(conversationId, sendMessageRequest);
-
-        UserConversation userConversation1 = new UserConversation
-        {
-            Username = username1,
-            ConversationId = conversationId,
-            LastModifiedTime = unixTimeNow
-        };
-        await _userConversationStore.CreateUserConversation(userConversation1);
-
-        UserConversation userConversation2 = new UserConversation
-        {
-            Username = username2,
-            ConversationId = conversationId,
-            LastModifiedTime = unixTimeNow
-        };
-        await _userConversationStore.CreateUserConversation(userConversation2);
-
-        return new StartConversationServiceResult
+        
+        long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        
+        await Task.WhenAll(
+            CreateUserConversation(username1, conversationId, unixTimeNow),
+            CreateUserConversation(username2, conversationId, unixTimeNow)
+        );
+        
+        return new StartConversationResult
         {
             ConversationId = conversationId,
             CreatedUnixTime = unixTimeNow
         };
     }
-
-    public async Task<GetUserConversationsServiceResult> GetUserConversations(
-        string username, int limit, OrderBy orderBy, string? continuationToken, long lastSeenConversationTime)
+    
+    public async Task<GetConversationsResult> GetUserConversations(
+        string username, GetUserConversationsParameters parameters)
     {
         if (string.IsNullOrWhiteSpace(username))
         {
             throw new ArgumentException($"Invalid username {username}.");
         }
 
-        if (limit <= 0)
+        if (parameters.Limit <= 0)
         {
-            throw new ArgumentException($"Invalid limit {limit}. Limit must be greater or equal to 1.");
+            throw new ArgumentException($"Invalid limit {parameters.Limit}. Limit must be greater or equal to 1.");
         }
 
-        if (lastSeenConversationTime < 0)
+        if (parameters.LastSeenConversationTime < 0)
         {
             throw new ArgumentException(
-                $"Invalid lastSeenConversationTime {lastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
+                $"Invalid lastSeenConversationTime {parameters.LastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
         }
-
-        if (!await _profileService.ProfileExists(username))
-        {
-            throw new UserNotFoundException($"User {username} was not found.");
-        }
-
-        var result = await _userConversationStore.GetUserConversations(
-            username, limit, orderBy, continuationToken, lastSeenConversationTime);
+        
+        await ThrowIfParticipantNotFound(username);
+        
+        var result = await _userConversationStore.GetUserConversations(username, parameters);
 
         List<Conversation> conversations = await UserConversationsToConversations(result.UserConversations);
 
-        return new GetUserConversationsServiceResult
+        return new GetConversationsResult
         {
             Conversations = conversations,
             NextContinuationToken = result.NextContinuationToken
@@ -111,35 +85,25 @@ public class UserConversationService : IUserConversationService
 
     private async Task<List<Conversation>> UserConversationsToConversations(List<UserConversation> userConversations)
     {
-        List<Conversation> conversations = new();
-
-        foreach (UserConversation userConversation in userConversations)
+        Conversation[] conversations = new Conversation[userConversations.Count];
+        
+        await Task.WhenAll(userConversations.Select(async (userConversation, index) =>
         {
-            string[] usernames = userConversation.ConversationId.Split('_');
-            string recipientUsername;
-
-            if (usernames[0].Equals(userConversation.Username))
-            {
-                recipientUsername = usernames[1];
-            }
-            else
-            {
-                recipientUsername = usernames[0];
-            }
-
+            string[] usernames = ConversationIdUtilities.SplitConversationId(userConversation.ConversationId);
+            string recipientUsername = GetRecipientUsername(senderUsername: userConversation.Username, usernames);
+            
             Profile recipientProfile = await _profileService.GetProfile(recipientUsername);
 
-            Conversation conversation = new Conversation
+            Conversation conversation = new()
             {
                 ConversationId = userConversation.ConversationId,
                 LastModifiedUnixTime = userConversation.LastModifiedTime,
                 Recipient = recipientProfile
             };
-
-            conversations.Add(conversation);
-        }
-
-        return conversations;
+            conversations[index] = conversation;
+        }));
+        
+        return conversations.ToList();
     }
 
     private void ValidateStartConversationRequest(StartConversationRequest request)
@@ -164,5 +128,39 @@ public class UserConversationService : IUserConversationService
         {
             throw new ArgumentException($"Invalid FirstMessage {request.FirstMessage}.");
         }
+    }
+    
+    private async Task CreateUserConversation(string username, string conversationId, long lastModifiedTime)
+    {
+        UserConversation userConversation = new()
+        {
+            Username = username,
+            ConversationId = conversationId,
+            LastModifiedTime = lastModifiedTime
+        };
+        await _userConversationStore.CreateUserConversation(userConversation);
+    }
+    
+    private async Task EnsureThatParticipantsExist(List<string> participants)
+    {
+        await Task.WhenAll(participants.Select(ThrowIfParticipantNotFound));
+    }
+
+    private async Task ThrowIfParticipantNotFound(string username)
+    {
+        bool profileExists = await _profileService.ProfileExists(username);
+        if (!profileExists)
+        {
+            throw new UserNotFoundException($"A user with the username {username} was not found.");
+        }
+    }
+    
+    private string GetRecipientUsername(string senderUsername, string[] usernames)
+    {
+        if (senderUsername.Equals(usernames[0]))
+        {
+           return usernames[1];
+        }
+        return usernames[0];
     }
 }

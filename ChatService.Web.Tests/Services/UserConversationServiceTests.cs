@@ -21,20 +21,28 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
 
     private static readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-    private static readonly List<string> _participants = new List<string>
+    private static readonly List<string> _participants = new()
     {
         Guid.NewGuid().ToString(),
         Guid.NewGuid().ToString()
     };
 
-    private static readonly SendMessageRequest _sendMessageRequest = new SendMessageRequest
+    private static readonly SendMessageRequest _sendMessageRequest = new()
     {
         MessageId = Guid.NewGuid().ToString(),
         SenderUsername = _participants.ElementAt(0),
-        Text = "Hello World."
+        Text = Guid.NewGuid().ToString()
+    };
+    
+    private GetUserConversationsParameters _parameters = new()
+    {
+        Limit = 1,
+        Order = OrderBy.ASC,
+        ContinuationToken = null,
+        LastSeenConversationTime = 0
     };
 
-    private readonly StartConversationRequest _startConversationRequest = new StartConversationRequest
+    private readonly StartConversationRequest _startConversationRequest = new()
     {
         Participants = _participants,
         FirstMessage = _sendMessageRequest
@@ -58,7 +66,6 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     {
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
             .ReturnsAsync(true);
-
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
             .ReturnsAsync(true);
 
@@ -66,7 +73,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
 
         response.CreatedUnixTime = _unixTimeNow;
 
-        StartConversationServiceResult expected = new StartConversationServiceResult
+        StartConversationResult expected = new()
         {
             ConversationId = ConversationIdUtilities.GenerateConversationId(
                 _participants.ElementAt(0), _participants.ElementAt(1)),
@@ -80,12 +87,11 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     [MemberData(nameof(GenerateInvalidParticipantsList))]
     public async Task CreateConversation_InvalidParticipantsList(List<string> participants)
     {
-        StartConversationRequest startConversationRequest = new StartConversationRequest
+        StartConversationRequest startConversationRequest = new()
         {
             Participants = participants,
             FirstMessage = _sendMessageRequest
         };
-
         await Assert.ThrowsAsync<ArgumentException>( () => 
             _userConversationService.CreateConversation(startConversationRequest));
     }
@@ -102,7 +108,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     [InlineData("messageId", "senderUsername", " ")]
     public async Task CreateConversation_InvalidSendMessageRequest(string messageId, string senderUsername, string text)
     {
-        SendMessageRequest sendMessageRequest = new SendMessageRequest
+        SendMessageRequest sendMessageRequest = new()
         {
             MessageId = messageId,
             SenderUsername = senderUsername,
@@ -116,28 +122,26 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     }
 
     [Fact]
-    public async Task CreateConversation_Profile1NotFound()
+    public async Task CreateConversation_Participant1NotFound()
     {
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
             .ReturnsAsync(false);
-
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
             .ReturnsAsync(true);
 
-        await Assert.ThrowsAsync<ProfileNotFoundException>( () => 
+        await Assert.ThrowsAsync<UserNotFoundException>( () => 
             _userConversationService.CreateConversation(_startConversationRequest));
     }
 
     [Fact]
-    public async Task CreateConversation_Profile2NotFound()
+    public async Task CreateConversation_Participant2NotFound()
     {
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
             .ReturnsAsync(true);
-
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
             .ReturnsAsync(false);
-
-        await Assert.ThrowsAsync<ProfileNotFoundException>( () => 
+        
+        await Assert.ThrowsAsync<UserNotFoundException>( () => 
             _userConversationService.CreateConversation(_startConversationRequest));
     }
 
@@ -145,79 +149,57 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     public async Task GetUserConversations_Success()
     {
         string username1 = Guid.NewGuid().ToString();
-        string username2 = Guid.NewGuid().ToString();
-        string username3 = Guid.NewGuid().ToString();
-        
         _profileServiceMock.Setup(m => m.ProfileExists(username1))
             .ReturnsAsync(true);
+        
+        string username2 = Guid.NewGuid().ToString();
+        string username3 = Guid.NewGuid().ToString();
+        Profile profile2 = CreateProfile(username2);
+        Profile profile3 = CreateProfile(username3);
 
-        Profile profile2 = new Profile
+        List<UserConversation> userConversations = new()
         {
-            Username = username2,
-            FirstName = Guid.NewGuid().ToString(),
-            LastName = Guid.NewGuid().ToString(),
-            ProfilePictureId = Guid.NewGuid().ToString()
-        };
-        Profile profile3 = new Profile
-        {
-            Username = username3,
-            FirstName = Guid.NewGuid().ToString(),
-            LastName = Guid.NewGuid().ToString(),
-            ProfilePictureId = Guid.NewGuid().ToString()
+            CreateUserConversation(senderUsername: username1, recipientUsername: username2),
+            CreateUserConversation(senderUsername: username1, recipientUsername: username3)
         };
         
-        List<UserConversation> userConversations = new List<UserConversation>
+        GetUserConversationsParameters parameters = new()
         {
-            new UserConversation
-            {
-                Username = username1,
-                ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username2),
-                LastModifiedTime = _unixTimeNow
-            },
-            new UserConversation
-            {
-                Username = username1,
-                ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username3),
-                LastModifiedTime = _unixTimeNow
-            }
+            Limit = 10,
+            Order = OrderBy.DESC,
+            ContinuationToken = null,
+            LastSeenConversationTime = 0
         };
-
+        
         string nextContinuationToken = Guid.NewGuid().ToString();
+        GetUserConversationsResult result = new()
+        {
+            UserConversations = userConversations,
+            NextContinuationToken = nextContinuationToken
+        };
         
-        _userConversationStoreMock.Setup(m => m.GetUserConversations(
-                username1, 10, OrderBy.DESC, null, 0))
-            .ReturnsAsync((userConversations, nextContinuationToken));
-        
+        _userConversationStoreMock.Setup(m => m.GetUserConversations(username1, parameters))
+            .ReturnsAsync(result);
         _profileServiceMock.Setup(m => m.GetProfile(username2))
             .ReturnsAsync(profile2);
-        
         _profileServiceMock.Setup(m => m.GetProfile(username3))
             .ReturnsAsync(profile3);
 
-            List<Conversation> conversations = new List<Conversation>
-            {
-                new Conversation
-                {  
-                    ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username2),
-                    LastModifiedUnixTime = _unixTimeNow,
-                    Recipient = profile2
-                },
-                new Conversation
-                {
-                    ConversationId = ConversationIdUtilities.GenerateConversationId(username1, username3),
-                    LastModifiedUnixTime = _unixTimeNow,
-                    Recipient = profile3
-                }
-            };
-            
-            GetUserConversationsServiceResult expected = new GetUserConversationsServiceResult
-            {
-                Conversations = conversations,
-                NextContinuationToken = nextContinuationToken
-            };
-            
-        var response = await _userConversationService.GetUserConversations(
-            username1, 10, OrderBy.DESC, null, 0);
+        List<Conversation> conversations = new()
+        {
+            CreateConversation(senderUsername: username1, recipientProfile: profile2),
+            CreateConversation(senderUsername: username1, recipientProfile: profile3)
+        };
+        
+        GetConversationsResult expected = new()
+        {
+            Conversations = conversations,
+            NextContinuationToken = nextContinuationToken
+        };
+
+        _parameters.Limit = 10;
+        _parameters.Order = OrderBy.DESC;
+        var response = await _userConversationService.GetUserConversations(username1, _parameters);
 
         Assert.Equal(expected.Conversations, response.Conversations);
         Assert.Equal(expected.NextContinuationToken, response.NextContinuationToken);
@@ -233,9 +215,12 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     public async Task GetUserConversations_InvalidArguments(
         string username, int limit, OrderBy orderBy, string? continuationToken, long lastSeenConversationTime)
     {
+        _parameters.Limit = limit;
+        _parameters.Order = orderBy;
+        _parameters.ContinuationToken = continuationToken;
+        _parameters.LastSeenConversationTime = lastSeenConversationTime;
         await Assert.ThrowsAsync<ArgumentException>( () => 
-            _userConversationService.GetUserConversations(
-                username, limit, orderBy, continuationToken, lastSeenConversationTime));
+            _userConversationService.GetUserConversations(username, _parameters));
     }
 
     [Fact]
@@ -245,8 +230,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             .ReturnsAsync(false);
         
         await Assert.ThrowsAsync<UserNotFoundException>( () => 
-            _userConversationService.GetUserConversations(
-                _participants.ElementAt(0), 10, OrderBy.DESC, null, 0));
+            _userConversationService.GetUserConversations(_participants.ElementAt(0), _parameters));
     }
     
     public static IEnumerable<object[]> GenerateInvalidParticipantsList(){
@@ -264,5 +248,36 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         } };
         
         yield return new object[] { new List<string> { _participants.ElementAt(0) } };
+    }
+    
+    private Conversation CreateConversation(string senderUsername, Profile recipientProfile)
+    {
+        return new Conversation
+        {
+            ConversationId = ConversationIdUtilities.GenerateConversationId(senderUsername, recipientProfile.Username),
+            LastModifiedUnixTime = _unixTimeNow,
+            Recipient = recipientProfile
+        };
+    }
+    
+    private UserConversation CreateUserConversation(string senderUsername, string recipientUsername)
+    {
+        return new UserConversation
+        {
+            Username = senderUsername,
+            ConversationId = ConversationIdUtilities.GenerateConversationId(senderUsername, recipientUsername),
+            LastModifiedTime = _unixTimeNow
+        };
+    }
+    
+    private Profile CreateProfile(string username)
+    {
+        return new Profile
+        {
+            Username = username,
+            FirstName = Guid.NewGuid().ToString(),
+            LastName = Guid.NewGuid().ToString(),
+            ProfilePictureId = Guid.NewGuid().ToString()
+        };
     }
 }

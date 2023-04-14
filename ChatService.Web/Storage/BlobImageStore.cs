@@ -22,7 +22,7 @@ public class BlobImageStore : IImageStore
 
         string imageId = Guid.NewGuid().ToString();
         BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);
-        BlobHttpHeaders headers = new BlobHttpHeaders
+        BlobHttpHeaders headers = new()
         {
             ContentType = image.ContentType
         };
@@ -37,7 +37,7 @@ public class BlobImageStore : IImageStore
 
         try
         {
-            MemoryStream content = new MemoryStream();
+            MemoryStream content = new();
             await blobClient.DownloadToAsync(content);
             BlobProperties properties = await blobClient.GetPropertiesAsync();
             string contentType = properties.ContentType;

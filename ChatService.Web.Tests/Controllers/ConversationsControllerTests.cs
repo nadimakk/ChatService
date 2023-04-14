@@ -20,7 +20,23 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     
     private static readonly string _username = Guid.NewGuid().ToString();
 
-    private static readonly SendMessageRequest _sendMessageRequest = new SendMessageRequest
+    private GetMessagesParameters _getMessagesParameters = new()
+    {
+        Limit = 50,
+        Order = OrderBy.DESC,
+        ContinuationToken = null,
+        LastSeenMessageTime = 0
+    };
+    
+    private GetUserConversationsParameters _getUserConversationsParameters = new()
+    {
+        Limit = 10,
+        Order = OrderBy.DESC,
+        ContinuationToken = null,
+        LastSeenConversationTime = 0
+    };
+
+    private static readonly SendMessageRequest _sendMessageRequest = new()
     {
         MessageId = Guid.NewGuid().ToString(),
         SenderUsername = _username,
@@ -33,7 +49,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     
     private readonly string _nextContinuationToken = Guid.NewGuid().ToString();
 
-    private readonly StartConversationRequest _startConversationRequest = new StartConversationRequest
+    private readonly StartConversationRequest _startConversationRequest = new()
     {
         Participants = new List<string> { _username, Guid.NewGuid().ToString() },
         FirstMessage = _sendMessageRequest
@@ -66,18 +82,18 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             LastModifiedUnixTime = _unixTimeNow
         });
         
-        var userConversationServiceResult = new GetUserConversationsServiceResult
+        var getUserConversationsResult = new GetConversationsResult
         {
             Conversations = conversations,
             NextContinuationToken = _nextContinuationToken
         };
         
-        _userConversationServiceMock.Setup(m => m.GetUserConversations(_username, 10, OrderBy.DESC, null, 0))
-            .ReturnsAsync(userConversationServiceResult);
+        _userConversationServiceMock.Setup(m => m.GetUserConversations(_username, _getUserConversationsParameters))
+            .ReturnsAsync(getUserConversationsResult);
         
         string nextUri = "/api/conversations" +
                          $"?username={_username}" +
-                         "&limit=10" +
+                         $"&limit={_getUserConversationsParameters.Limit}" +
                          "&lastSeenConversationTime=0" +
                          $"&continuationToken={_nextContinuationToken}";
 
@@ -93,7 +109,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task GetUserConversations_InvalidArguments()
     {
-        _userConversationServiceMock.Setup(m => m.GetUserConversations(_username, 10, OrderBy.DESC, null, 0))
+        _userConversationServiceMock.Setup(m => m.GetUserConversations(_username, _getUserConversationsParameters))
             .ThrowsAsync(new ArgumentException($"Invalid arguments."));
 
         var response = await _httpClient.GetAsync($"api/Conversations/?username={_username}");
@@ -105,9 +121,10 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     public async Task GetUserConversations_InvalidContinuationToken()
     {
         string invalidContinuationToken = Guid.NewGuid().ToString();
-
+        _getUserConversationsParameters.ContinuationToken = invalidContinuationToken;
+        
         _userConversationServiceMock.Setup(m => m.GetUserConversations(
-                _username, 10, OrderBy.DESC, invalidContinuationToken, 0))
+                _username, _getUserConversationsParameters))
             .ThrowsAsync(new InvalidContinuationTokenException($"Continuation token {invalidContinuationToken} is invalid."));
         
         var response = await _httpClient.GetAsync(
@@ -120,8 +137,8 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     public async Task GetUserConversations_UserNotFound()
     {
         _userConversationServiceMock.Setup(m => m.GetUserConversations(
-                _username, 10, OrderBy.DESC, null, 0))
-            .ThrowsAsync(new UserNotFoundException($"User {_username} was not found."));
+                _username, _getUserConversationsParameters))
+            .ThrowsAsync(new UserNotFoundException($"A user with the username {_username} was not found."));
 
         var response = await _httpClient.GetAsync(
             $"api/Conversations/?username={_username}&");
@@ -132,7 +149,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task StartConversation_Success()
     {
-        var startConversationServiceResult = new StartConversationServiceResult
+        var startConversationServiceResult = new StartConversationResult
         {
             ConversationId = Guid.NewGuid().ToString(),
             CreatedUnixTime = _unixTimeNow
@@ -176,7 +193,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
                     p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                          && p.FirstMessage == _startConversationRequest.FirstMessage)))
-            .ThrowsAsync(new ProfileNotFoundException($"A profile with the username {_username} was not found."));
+            .ThrowsAsync(new UserNotFoundException($"A user with the username {_username} was not found."));
         
         var response = await _httpClient.PostAsJsonAsync($"api/Conversations/", _startConversationRequest);
 
@@ -214,17 +231,17 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             UnixTime = _unixTimeNow
         });
 
-        var getMessagesServiceResult = new GetMessagesServiceResult
+        var getMessagesServiceResult = new GetMessagesResult
         {
             Messages = messages,
             NextContinuationToken = _nextContinuationToken
         };
         
-        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, 10, OrderBy.DESC, null, 0))
+        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, _getMessagesParameters))
             .ReturnsAsync(getMessagesServiceResult);
         
         string nextUri = $"/api/conversations/{_conversationId}/messages" +
-                         "&limit=10" +
+                         $"&limit={_getMessagesParameters.Limit}" +
                          $"&continuationToken={_nextContinuationToken}" +
                          "&lastSeenConversationTime=0";
 
@@ -240,7 +257,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task GetMessages_InvalidArguments()
     {
-        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, 10, OrderBy.DESC, null, 0))
+        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, _getMessagesParameters))
             .ThrowsAsync(new ArgumentException());
 
         var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
@@ -251,7 +268,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task GetMessages_ConversationDoesNotExist()
     {
-        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, 10, OrderBy.DESC, null, 0))
+        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, _getMessagesParameters))
             .ThrowsAsync(new ConversationDoesNotExistException(
                 $"A conversation partition with the conversationId {_conversationId} does not exist."));
 
@@ -309,8 +326,8 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     public async Task PostMessage_ProfileNotFound()
     {
         _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
-            .ThrowsAsync(new ProfileNotFoundException(
-                $"A profile with the username {_username} was not found."));
+            .ThrowsAsync(new UserNotFoundException(
+                $"A user with the username {_username} was not found."));
         
         var response = await _httpClient.PostAsJsonAsync(
             $"/api/conversations/{_conversationId}/messages/", _sendMessageRequest);

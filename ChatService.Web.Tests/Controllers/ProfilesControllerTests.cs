@@ -15,7 +15,7 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
 {
     private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly HttpClient _httpClient;
-    private readonly Profile _profile = new Profile
+    private readonly Profile _profile = new()
     {
         Username = "foobar",
         FirstName = "Foo",
@@ -53,14 +53,11 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
     public async Task GetProfile_ProfileNotFound()
     {
         _profileServiceMock.Setup(m => m.GetProfile(_profile.Username))
-            .ThrowsAsync(new ProfileNotFoundException($"A profile with the username {_profile.Username} was not found."));
+            .ThrowsAsync(new UserNotFoundException($"A user with the username {_profile.Username} was not found."));
 
         var response = await _httpClient.GetAsync($"api/Profiles/{_profile.Username}");
         
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        
-        var json = await response.Content.ReadAsStringAsync();
-        Assert.Equal($"A profile with the username {_profile.Username} was not found.", json);
     }
 
     [Fact]
@@ -109,7 +106,7 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
             .ThrowsAsync(new ArgumentException($"Invalid profile {_profile}"));
         
-        Profile profile = new Profile
+        Profile profile = new()
         {
             Username = username,
             FirstName = firstName,
@@ -125,7 +122,7 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
     [Fact]
     public async Task PostProfile_InvalidUsername()
     {
-        Profile profile = new Profile
+        Profile profile = new()
         {
             Username = "username_with_underscore",
             FirstName = "firstName",

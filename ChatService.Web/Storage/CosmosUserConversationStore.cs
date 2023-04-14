@@ -37,7 +37,7 @@ public class CosmosUserConversationStore : IUserConversationStore
         }
     }
 
-    public async Task<UserConversation> GetUserConversation(string username, string conversationId)
+    public async Task<UserConversation?> GetUserConversation(string username, string conversationId)
     {
         ValidateUsername(username);
         ValidateConversationId(conversationId);
@@ -58,32 +58,33 @@ public class CosmosUserConversationStore : IUserConversationStore
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                throw new UserConversationNotFoundException($"A UserConversation with conversationId {conversationId} was not found.");
+                return null;
             }
             throw;
         }
     }
 
-    public async Task<(List<UserConversation> UserConversations, string NextContinuationToken)> GetUserConversations
-        (string username, int limit, OrderBy order, string? continuationToken, long lastSeenConversationTime)
+    public async Task<GetUserConversationsResult> GetUserConversations(string username, 
+        GetUserConversationsParameters parameters)
     {
         ValidateUsername(username);
-        ValidateLimit(limit);
-        ValidateLastSeenMessageTime(lastSeenConversationTime);
+        ValidateLimit(parameters.Limit);
+        ValidateLastSeenMessageTime(parameters.LastSeenConversationTime);
         
-        List<UserConversation> userConversations = new ();
+        List<UserConversation> userConversations = new();
         string? nextContinuationToken = null;
         
-        QueryRequestOptions options = new QueryRequestOptions();
-        options.MaxItemCount = limit;
+        QueryRequestOptions options = new();
+        options.MaxItemCount = parameters.Limit;
 
         try
         {
             IQueryable<UserConversationEntity> query = Container
-                .GetItemLinqQueryable<UserConversationEntity>(false, continuationToken, options)
-                .Where(e => e.partitionKey == username && e.LastModifiedTime > lastSeenConversationTime);
+                .GetItemLinqQueryable<UserConversationEntity>(
+                    allowSynchronousQueryExecution: false, parameters.ContinuationToken, options)
+                .Where(e => e.partitionKey == username && e.LastModifiedTime > parameters.LastSeenConversationTime);
             
-            if (order == OrderBy.ASC)
+            if (parameters.Order == OrderBy.ASC)
             {
                 query = query.OrderBy(e => e.LastModifiedTime);
             }
@@ -102,13 +103,17 @@ public class CosmosUserConversationStore : IUserConversationStore
                 nextContinuationToken = response.ContinuationToken;
             };
 
-            return (userConversations, nextContinuationToken);
+            return new GetUserConversationsResult
+            {
+                UserConversations = userConversations,
+                NextContinuationToken = nextContinuationToken
+            };
         }
         catch (CosmosException e)
         {
             if (e.StatusCode == HttpStatusCode.BadRequest)
             {
-                throw new InvalidContinuationTokenException($"Continuation token {continuationToken} is invalid.");
+                throw new InvalidContinuationTokenException($"Continuation token {parameters.ContinuationToken} is invalid.");
             }
             throw;
         }
@@ -172,7 +177,7 @@ public class CosmosUserConversationStore : IUserConversationStore
     
     private void ValidateConversationId(string conversationId)
     {
-        if (string.IsNullOrWhiteSpace(conversationId) || !conversationId.Contains('_'))
+        if (string.IsNullOrWhiteSpace(conversationId))
         {
             throw new ArgumentException($"Invalid conversationId {conversationId}.");
         }

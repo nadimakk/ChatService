@@ -2,6 +2,7 @@ using ChatService.Web.Dtos;
 using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage;
+using ChatService.Web.Utilities;
 
 namespace ChatService.Web.Services;
 
@@ -21,24 +22,17 @@ public class MessageService : IMessageService
     {
         ValidateSendMessageRequest(request);
         ValidateConversationId(conversationId);
-        
-        if (!isFirstMessage && !await _messageStore.ConversationPartitionExists(conversationId))
+        if (!isFirstMessage)
         {
-            throw new ConversationDoesNotExistException(
-                $"A conversation partition with the conversationId {conversationId} does not exist.");
+            await CheckIfConversationExists(conversationId);
         }
-
-        if (!await _profileService.ProfileExists(request.SenderUsername))
-        {
-            throw new ProfileNotFoundException(
-                $"A profile with the username {request.SenderUsername} was not found.");
-        }
+        await ThrowIfUserNotFound(request.SenderUsername);
         
         AuthorizeSender(conversationId, request.SenderUsername);
         
         long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        Message message = new Message
+        Message message = new()
         {
             MessageId = request.MessageId,
             UnixTime = unixTimeNow,
@@ -56,30 +50,17 @@ public class MessageService : IMessageService
 
     public async Task<SendMessageResponse> AddFirstMessage(string conversationId, SendMessageRequest request)
     {
-        return await AddMessage(conversationId, true, request);
+        return await AddMessage(conversationId, isFirstMessage: true, request);
     }
     
-    public async Task<GetMessagesServiceResult> GetMessages(string conversationId, int limit, OrderBy orderBy,
-        string? continuationToken, long lastSeenConversationTime)
+    public async Task<GetMessagesResult> GetMessages(string conversationId, GetMessagesParameters parameters)
     {
         ValidateConversationId(conversationId);
-        ValidateLimit(limit);
-        ValidateLastSeenConversationTime(lastSeenConversationTime);
-
-        if (!await _messageStore.ConversationPartitionExists(conversationId))
-        {
-            throw new ConversationDoesNotExistException(
-                $"A conversation partition with the conversationId {conversationId} does not exist.");
-        }
-
-        var result = await _messageStore.GetMessages(
-            conversationId, limit, orderBy, continuationToken, lastSeenConversationTime);
-
-        return new GetMessagesServiceResult
-        {
-            Messages = result.Messages,
-            NextContinuationToken = result.NextContinuationToken
-        };
+        ValidateLimit(parameters.Limit);
+        ValidateLastSeenConversationTime(parameters.LastSeenMessageTime);
+        await CheckIfConversationExists(conversationId);
+        
+        return await _messageStore.GetMessages(conversationId, parameters);
     }
 
     private void ValidateSendMessageRequest(SendMessageRequest request)
@@ -96,10 +77,7 @@ public class MessageService : IMessageService
 
     private void ValidateConversationId(string conversationId)
     {
-        if (string.IsNullOrWhiteSpace(conversationId) || !conversationId.Contains('_'))
-        {
-            throw new ArgumentException($"Invalid conversationId {conversationId}.");
-        }
+        ConversationIdUtilities.ValidateConversationId(conversationId);
     }
 
     private void ValidateLimit(int limit)
@@ -119,13 +97,33 @@ public class MessageService : IMessageService
         }
     }
     
+    private async Task ThrowIfUserNotFound(string username)
+    {
+        bool profileExists = await _profileService.ProfileExists(username);
+        if (!profileExists)
+        {
+            throw new UserNotFoundException($"A user with the username {username} was not found.");
+        }
+    }
+    
     private void AuthorizeSender(string conversationId, string senderUsername)
     {
-        string[] usernames = conversationId.Split('_');
-        if (!usernames[0].Equals(senderUsername) && !usernames[1].Equals(senderUsername))
+        string[] usernames = ConversationIdUtilities.SplitConversationId(conversationId);
+        bool userNotParticipant = !usernames[0].Equals(senderUsername) && !usernames[1].Equals(senderUsername);
+        if (userNotParticipant)
         {
             throw new UserNotParticipantException(
                 $"User {senderUsername} is not a participant of conversation {conversationId}.");
+        }
+    }
+    
+    private async Task CheckIfConversationExists(string conversationId)
+    {
+        bool conversationExists = await _messageStore.ConversationPartitionExists(conversationId);
+        if (!conversationExists)
+        {
+            throw new ConversationDoesNotExistException(
+                $"A conversation partition with the conversationId {conversationId} does not exist.");
         }
     }
 }

@@ -17,11 +17,11 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
     private readonly Mock<IImageService> _imageServiceMock = new();
     private readonly HttpClient _httpClient;
     
-    private static readonly Image _image = new("image/jpeg", new MemoryStream());
+    private static readonly Image _image = new(ContentType: "image/jpeg", Content: new MemoryStream());
     
     private readonly MultipartFormDataContent _content = new();
     
-    private readonly StreamContent _fileContent = new StreamContent(_image.Content)
+    private readonly StreamContent _fileContent = new(_image.Content)
     {
         Headers = { ContentType = new MediaTypeHeaderValue(_image.ContentType) }
     };
@@ -42,7 +42,7 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
         var uploadImageResponse = new UploadImageResponse(_imageId);
         
         _imageServiceMock.Setup(m => m.UploadImage(It.IsAny<Image>()))
-            .ReturnsAsync(new UploadImageServiceResult(_imageId));
+            .ReturnsAsync(new UploadImageResult(_imageId));
         
         _content.Add(_fileContent,"File", "image.jpeg");
         
@@ -87,7 +87,7 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
         var fileContentResult = new FileContentResult(_image.Content.ToArray(), _image.ContentType);
 
         _imageServiceMock.Setup(m => m.DownloadImage(_imageId))
-            .ReturnsAsync(fileContentResult);
+            .ReturnsAsync(_image);
 
         var response = await _httpClient.GetAsync($"api/Images/{_imageId}");
         

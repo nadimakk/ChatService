@@ -23,18 +23,17 @@ public class ImagesController : ControllerBase
     {
         MemoryStream content = new();
         await request.File.CopyToAsync(content);
-        Image image = new Image(request.File.ContentType, content);
+        Image image = new(request.File.ContentType, content);
         
         try
         {
-             UploadImageServiceResult result = await _imageService.UploadImage(image);
+             UploadImageResult result = await _imageService.UploadImage(image);
              _logger.LogInformation("Uploaded image with id {id}.", result.ImageId);
              return CreatedAtAction(nameof(DownloadImage), new { imageId = result.ImageId }, 
                  new UploadImageResponse(result.ImageId));
         }
         catch (InvalidImageTypeException e)
         {
-            _logger.LogError(e, "Error uploading image: {ErrorMessage}", e.Message);
             return BadRequest(e.Message);
         }
     }
@@ -42,24 +41,18 @@ public class ImagesController : ControllerBase
     [HttpGet("{imageId}")] 
     public async  Task<IActionResult> DownloadImage(string imageId)
     {
-        using (_logger.BeginScope("{ImageId}", imageId))
+        try
         {
-            try
-            {
-                var result = await _imageService.DownloadImage(imageId);
-                _logger.LogInformation("Downloaded image with id {id}.", imageId);
-                return result;
-            }
-            catch (ArgumentException e)
-            {
-                _logger.LogError(e, "Error downloading image: {ErrorMessage}", e.Message);
-                return BadRequest(e.Message);
-            }
-            catch (ImageNotFoundException e)
-            {
-                _logger.LogError(e, "Error downloading image: {ErrorMessage}", e.Message);
-                return NotFound(e.Message);
-            }
+            Image image = await _imageService.DownloadImage(imageId);
+            return new FileContentResult(image.Content.ToArray(), image.ContentType);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (ImageNotFoundException e)
+        {
+            return NotFound(e.Message);
         }
     }
 }

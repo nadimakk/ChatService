@@ -1,7 +1,6 @@
 using ChatService.Web.Dtos;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage;
-using Microsoft.AspNetCore.Mvc;
 
 namespace ChatService.Web.Services;
 
@@ -14,16 +13,16 @@ public class ImageService : IImageService
         _imageStore = imageStore;
     }
 
-    public async Task<UploadImageServiceResult> UploadImage(Image image)
+    public async Task<UploadImageResult> UploadImage(Image image)
     {
         ValidateImage(image);
         
         string imageId = await _imageStore.UploadImage(image);
         
-        return new UploadImageServiceResult(imageId);
+        return new UploadImageResult(imageId);
     }
 
-    public async Task<FileContentResult> DownloadImage(string imageId)
+    public async Task<Image> DownloadImage(string imageId)
     {
         ValidateImageId(imageId);
         
@@ -33,8 +32,8 @@ public class ImageService : IImageService
         {
             throw new ImageNotFoundException($"An image with id {imageId} was not found.");
         }
-        
-        return new FileContentResult(image.Content.ToArray(), image.ContentType);
+
+        return image;
     }
 
     public async Task DeleteImage(string imageId)

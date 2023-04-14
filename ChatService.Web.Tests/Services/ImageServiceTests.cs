@@ -16,7 +16,9 @@ public class ImageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly IImageService _imageService;
 
     private readonly string _imageId = Guid.NewGuid().ToString();
-    private readonly Image _image = new("image/jpeg", new MemoryStream(new byte[] { 0x01, 0x02, 0x03 }));
+    private readonly Image _image = new(
+        ContentType: "image/jpeg", 
+        Content: new MemoryStream(new byte[] { 0x01, 0x02, 0x03 }));
     
     public ImageServiceTests(WebApplicationFactory<Program> factory)
     {
@@ -35,7 +37,7 @@ public class ImageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         _imageStoreMock.Setup(m => m.UploadImage(It.IsAny<Image>()))
             .ReturnsAsync(_imageId);
 
-        var expectedUploadImageServiceResult = new UploadImageServiceResult(_imageId);
+        var expectedUploadImageServiceResult = new UploadImageResult(_imageId);
         
         var receivedUploadImageServiceResult = await _imageService.UploadImage(_image);
         
@@ -45,7 +47,7 @@ public class ImageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task UploadImage_InvalidImageType()
     {
-        var invalidImage = new Image("text/plain", new MemoryStream());
+        var invalidImage = new Image(ContentType: "text/plain", Content: new MemoryStream());
 
         await Assert.ThrowsAsync<InvalidImageTypeException>(() => _imageService.UploadImage(invalidImage));
         
@@ -55,15 +57,13 @@ public class ImageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task DownloadImage_Success()
     {
-        var expectedFileContentResult = new FileContentResult(_image.Content.ToArray(), _image.ContentType);
-        
         _imageStoreMock.Setup(m => m.DownloadImage(_imageId))
             .ReturnsAsync(_image);
 
-        var receivedFileContentResult = await _imageService.DownloadImage(_imageId);
+        var receivedImage = await _imageService.DownloadImage(_imageId);
         
-        Assert.Equal(expectedFileContentResult.ContentType, receivedFileContentResult.ContentType);
-        Assert.True(expectedFileContentResult.FileContents.SequenceEqual(receivedFileContentResult.FileContents));
+        Assert.Equal(_image.ContentType, receivedImage.ContentType);
+        Assert.True(_image.Content.ToArray().SequenceEqual(receivedImage.Content.ToArray()));
     }
     
     [Theory]

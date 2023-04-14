@@ -79,7 +79,7 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task<bool> ProfileExists(string username)
     {
-        Profile profile = await GetProfile(username);
+        Profile? profile = await GetProfile(username);
 
         return profile != null;
     }
@@ -116,10 +116,6 @@ public class CosmosProfileStore : IProfileStore
            )
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
-        }
-        if (profile.Username.Contains('_'))
-        {
-            throw new InvalidUsernameException($"Username {profile.Username} is invalid. Usernames cannot have an underscore.");
         }
     }
 }

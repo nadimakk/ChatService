@@ -37,7 +37,7 @@ public class CosmosMessageStore : IMessageStore
         }
     }
 
-    public async Task<Message> GetMessage(string conversationId, string messageId)
+    public async Task<Message?> GetMessage(string conversationId, string messageId)
     {
         ValidateConversationId(conversationId);
         ValidateMessageId(messageId);
@@ -58,32 +58,32 @@ public class CosmosMessageStore : IMessageStore
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                throw new MessageNotFoundException($"A message with messageId {messageId} was not found.");
+                return null;
             }
             throw;
         }
     }
 
-    public async Task<(List<Message> Messages, string NextContinuationToken)> GetMessages(
-        string conversationId, int limit, OrderBy order, string? continuationToken, long lastSeenMessageTime)
+    public async Task<GetMessagesResult> GetMessages(string conversationId, GetMessagesParameters parameters)
     {
         ValidateConversationId(conversationId);
-        ValidateLimit(limit);
-        ValidateLastSeenMessageTime(lastSeenMessageTime);
+        ValidateLimit(parameters.Limit);
+        ValidateLastSeenMessageTime(parameters.LastSeenMessageTime);
 
-        List<Message> messages = new ();
+        List<Message> messages = new();
         string? nextContinuationToken = null;
         
-        QueryRequestOptions options = new QueryRequestOptions();
-        options.MaxItemCount = limit;
+        QueryRequestOptions options = new();
+        options.MaxItemCount = parameters.Limit;
 
         try
         {
             IQueryable<MessageEntity> query = Container
-                .GetItemLinqQueryable<MessageEntity>(false, continuationToken, options)
-                .Where(e => e.partitionKey == conversationId && e.UnixTime > lastSeenMessageTime);
+                .GetItemLinqQueryable<MessageEntity>(
+                    allowSynchronousQueryExecution: false, parameters.ContinuationToken, options)
+                .Where(e => e.partitionKey == conversationId && e.UnixTime > parameters.LastSeenMessageTime);
         
-            if (order == OrderBy.ASC)
+            if (parameters.Order == OrderBy.ASC)
             {
                 query = query.OrderBy(e => e.UnixTime);
             }
@@ -95,20 +95,24 @@ public class CosmosMessageStore : IMessageStore
             using (FeedIterator<MessageEntity> iterator = query.ToFeedIterator())
             {
                 FeedResponse<MessageEntity> response = await iterator.ReadNextAsync();
-                var receivedUserConversations = response.Select(ToMessage);
+                var receivedMessages = response.Select(ToMessage);
             
-                messages.AddRange(receivedUserConversations);
+                messages.AddRange(receivedMessages);
             
                 nextContinuationToken = response.ContinuationToken;
             };
 
-            return (messages, nextContinuationToken);
+            return new GetMessagesResult
+            {
+                Messages = messages,
+                NextContinuationToken = nextContinuationToken
+            };
         }
         catch (CosmosException e)
         {
             if (e.StatusCode == HttpStatusCode.BadRequest)
             {
-                throw new InvalidContinuationTokenException($"Continuation token {continuationToken} is invalid.");
+                throw new InvalidContinuationTokenException($"Continuation token {parameters.ContinuationToken} is invalid.");
             }
             throw;
         }
@@ -116,10 +120,15 @@ public class CosmosMessageStore : IMessageStore
 
     public async Task<bool> ConversationPartitionExists(string conversationId)
     {
-        var response = await GetMessages(
-            conversationId, 1, OrderBy.ASC, null, 0);
-        
-        return (response.Messages.Count > 0);
+        GetMessagesParameters parameters = new()
+        {
+            Limit = 1,
+            Order = OrderBy.ASC,
+            ContinuationToken = null,
+            LastSeenMessageTime = 0
+        };
+        GetMessagesResult result = await GetMessages(conversationId, parameters);
+        return (result.Messages.Count > 0);
     }
     
     public async Task DeleteMessage(string conversationId, string messageId)
@@ -177,7 +186,7 @@ public class CosmosMessageStore : IMessageStore
     
     private void ValidateConversationId(string conversationId)
     {
-        if (string.IsNullOrWhiteSpace(conversationId) || !conversationId.Contains('_'))
+        if (string.IsNullOrWhiteSpace(conversationId))
         {
             throw new ArgumentException($"Invalid conversationId {conversationId}.");
         }

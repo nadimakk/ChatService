@@ -6,11 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ChatService.Web.IntegrationTests;
 
-public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
+public class CosmosProfileStoreIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly IProfileStore _profileStore;
 
-    private readonly Profile _profile = new Profile
+    private readonly Profile _profile = new()
     {
         Username = Guid.NewGuid().ToString(),
         FirstName = "Foo",
@@ -28,7 +28,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
         await _profileStore.DeleteProfile(_profile.Username);
     }
 
-    public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
+    public CosmosProfileStoreIntegrationTests(WebApplicationFactory<Program> factory)
     {
         _profileStore = factory.Services.GetRequiredService<IProfileStore>();
     }
@@ -55,7 +55,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     [InlineData("foobar", "Foo", "Bar"," ")]
     public async Task AddNewProfile_InvalidArgs(string username, string firstName, string lastName, string profilePictureId)
     {
-        Profile profile = new Profile
+        Profile profile = new()
         {
             Username = username,
             FirstName = firstName,
