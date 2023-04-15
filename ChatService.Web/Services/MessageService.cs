@@ -22,11 +22,11 @@ public class MessageService : IMessageService
     {
         ValidateSendMessageRequest(request);
         ValidateConversationId(conversationId);
-        if (!isFirstMessage)
-        {
-            await CheckIfConversationExists(conversationId);
-        }
-        await ThrowIfUserNotFound(request.SenderUsername);
+        // if (!isFirstMessage)
+        // {
+        //     await CheckIfConversationExists(conversationId);
+        // }
+        // await ThrowIfUserNotFound(request.SenderUsername);
         
         AuthorizeSender(conversationId, request.SenderUsername);
         
@@ -34,7 +34,7 @@ public class MessageService : IMessageService
 
         Message message = new()
         {
-            MessageId = request.MessageId,
+            Id = request.Id,
             UnixTime = unixTimeNow,
             SenderUsername = request.SenderUsername,
             Text = request.Text
@@ -58,7 +58,7 @@ public class MessageService : IMessageService
         ValidateConversationId(conversationId);
         ValidateLimit(parameters.Limit);
         ValidateLastSeenConversationTime(parameters.LastSeenMessageTime);
-        await CheckIfConversationExists(conversationId);
+        // await CheckIfConversationExists(conversationId);
         
         return await _messageStore.GetMessages(conversationId, parameters);
     }
@@ -66,7 +66,7 @@ public class MessageService : IMessageService
     private void ValidateSendMessageRequest(SendMessageRequest request)
     {
         if (request == null ||
-            string.IsNullOrWhiteSpace(request.MessageId) ||
+            string.IsNullOrWhiteSpace(request.Id) ||
             string.IsNullOrWhiteSpace(request.SenderUsername) ||
             string.IsNullOrWhiteSpace(request.Text)
            )

@@ -180,7 +180,7 @@ public class ConversationsController : ControllerBase
                 SendMessageResponse response = await _messageService.AddMessage(conversationId, isFirstMessage: false, request);
             
                 _logger.LogInformation("Adding message {MessageId} to conversation {ConversationId} by sender {SenderUsername}",
-                    request.MessageId, conversationId, request.SenderUsername);
+                    request.Id, conversationId, request.SenderUsername);
                 
                 return CreatedAtAction(nameof(GetMessages), new { conversationId = conversationId }, response);
             }

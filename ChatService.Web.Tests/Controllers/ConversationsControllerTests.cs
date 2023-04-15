@@ -42,7 +42,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
 
     private static readonly SendMessageRequest _sendMessageRequest = new()
     {
-        MessageId = Guid.NewGuid().ToString(),
+        Id = Guid.NewGuid().ToString(),
         SenderUsername = _username,
         Text = "Hello"
     };
@@ -251,7 +251,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
                     p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                          && p.FirstMessage == _startConversationRequest.FirstMessage)))
             .ThrowsAsync(new MessageExistsException(
-            $"A message with ID {_startConversationRequest.FirstMessage.MessageId} already exists."));
+            $"A message with ID {_startConversationRequest.FirstMessage.Id} already exists."));
         
         var response = await _httpClient.PostAsJsonAsync($"api/Conversations/", _startConversationRequest);
 
@@ -277,13 +277,13 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         List<Message> messages = new();
         messages.Add(new Message
         {
-            MessageId = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid().ToString(),
             SenderUsername = Guid.NewGuid().ToString(),
             UnixTime = _unixTimeNow
         });
         messages.Add(new Message
         {
-            MessageId = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid().ToString(),
             SenderUsername = Guid.NewGuid().ToString(),
             UnixTime = _unixTimeNow
         });
@@ -420,7 +420,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     public async Task PostMessage_MessageExists()
     {
         _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
-            .ThrowsAsync(new MessageExistsException($"A message with ID {_sendMessageRequest.MessageId} already exists."));
+            .ThrowsAsync(new MessageExistsException($"A message with ID {_sendMessageRequest.Id} already exists."));
         
         var response = await _httpClient.PostAsJsonAsync(
             $"/api/conversations/{_conversationId}/messages/", _sendMessageRequest);

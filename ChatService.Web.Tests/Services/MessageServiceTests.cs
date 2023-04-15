@@ -34,7 +34,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
 
     private readonly SendMessageRequest _sendMessageRequest = new()
     {
-        MessageId = Guid.NewGuid().ToString(),
+        Id = Guid.NewGuid().ToString(),
         SenderUsername = _senderUsername,
         Text = Guid.NewGuid().ToString()
     };
@@ -64,7 +64,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
 
         Message message = new()
         {
-            MessageId = _sendMessageRequest.MessageId,
+            Id = _sendMessageRequest.Id,
             UnixTime = _unixTimeNow,
             SenderUsername = _sendMessageRequest.SenderUsername,
             Text = _sendMessageRequest.Text
@@ -79,7 +79,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
             _conversationId, isFirstMessage, _sendMessageRequest);
 
         _messageStoreMock.Verify(m => m.AddMessage(_conversationId, It.Is<Message>(
-            m => m.MessageId == message.MessageId
+            m => m.Id == message.Id
                 && m.SenderUsername == message.SenderUsername
                 && m.Text == message.Text)), Times.Once);
         
@@ -106,7 +106,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     {
         SendMessageRequest sendMessageRequest = new()
         {
-            MessageId = messageId,
+            Id = messageId,
             SenderUsername = senderUsername,
             Text = text
         };
@@ -216,7 +216,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     {
         return new Message()
         {
-            MessageId = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid().ToString(),
             UnixTime = _unixTimeNow,
             SenderUsername = _senderUsername,
             Text = Guid.NewGuid().ToString()

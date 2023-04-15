@@ -29,7 +29,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
 
     private static readonly SendMessageRequest _sendMessageRequest = new()
     {
-        MessageId = Guid.NewGuid().ToString(),
+        Id = Guid.NewGuid().ToString(),
         SenderUsername = _participants.ElementAt(0),
         Text = Guid.NewGuid().ToString()
     };
@@ -110,7 +110,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     {
         SendMessageRequest sendMessageRequest = new()
         {
-            MessageId = messageId,
+            Id = messageId,
             SenderUsername = senderUsername,
             Text = text
         };
