@@ -444,7 +444,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     {
         return new Conversation
         {
-            ConversationId = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid().ToString(),
             LastModifiedUnixTime = _unixTimeNow
         };
     }

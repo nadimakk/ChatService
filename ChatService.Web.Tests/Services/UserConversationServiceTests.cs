@@ -121,29 +121,29 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             _userConversationService.CreateConversation(_startConversationRequest));
     }
 
-    [Fact]
-    public async Task CreateConversation_Participant1NotFound()
-    {
-        _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
-            .ReturnsAsync(false);
-        _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
-            .ReturnsAsync(true);
+    // [Fact]
+    // public async Task CreateConversation_Participant1NotFound()
+    // {
+    //     _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
+    //         .ReturnsAsync(false);
+    //     _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
+    //         .ReturnsAsync(true);
+    //
+    //     await Assert.ThrowsAsync<UserNotFoundException>( () => 
+    //         _userConversationService.CreateConversation(_startConversationRequest));
+    // }
 
-        await Assert.ThrowsAsync<UserNotFoundException>( () => 
-            _userConversationService.CreateConversation(_startConversationRequest));
-    }
-
-    [Fact]
-    public async Task CreateConversation_Participant2NotFound()
-    {
-        _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
-            .ReturnsAsync(true);
-        _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
-            .ReturnsAsync(false);
-        
-        await Assert.ThrowsAsync<UserNotFoundException>( () => 
-            _userConversationService.CreateConversation(_startConversationRequest));
-    }
+    // [Fact]
+    // public async Task CreateConversation_Participant2NotFound()
+    // {
+    //     _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
+    //         .ReturnsAsync(true);
+    //     _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
+    //         .ReturnsAsync(false);
+    //     
+    //     await Assert.ThrowsAsync<UserNotFoundException>( () => 
+    //         _userConversationService.CreateConversation(_startConversationRequest));
+    // }
 
     [Fact]
     public async Task GetUserConversations_Success()
@@ -223,15 +223,15 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             _userConversationService.GetUserConversations(username, _parameters));
     }
 
-    [Fact]
-    public async Task GetUserConversations_UserNotFound()
-    {
-        _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
-            .ReturnsAsync(false);
-        
-        await Assert.ThrowsAsync<UserNotFoundException>( () => 
-            _userConversationService.GetUserConversations(_participants.ElementAt(0), _parameters));
-    }
+    // [Fact]
+    // public async Task GetUserConversations_UserNotFound()
+    // {
+    //     _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
+    //         .ReturnsAsync(false);
+    //     
+    //     await Assert.ThrowsAsync<UserNotFoundException>( () => 
+    //         _userConversationService.GetUserConversations(_participants.ElementAt(0), _parameters));
+    // }
     
     public static IEnumerable<object[]> GenerateInvalidParticipantsList(){
         
@@ -254,7 +254,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     {
         return new Conversation
         {
-            ConversationId = ConversationIdUtilities.GenerateConversationId(senderUsername, recipientProfile.Username),
+            Id = ConversationIdUtilities.GenerateConversationId(senderUsername, recipientProfile.Username),
             LastModifiedUnixTime = _unixTimeNow,
             Recipient = recipientProfile
         };

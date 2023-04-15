@@ -96,7 +96,7 @@ public class UserConversationService : IUserConversationService
 
             Conversation conversation = new()
             {
-                ConversationId = userConversation.ConversationId,
+                Id = userConversation.ConversationId,
                 LastModifiedUnixTime = userConversation.LastModifiedTime,
                 Recipient = recipientProfile
             };
@@ -138,7 +138,7 @@ public class UserConversationService : IUserConversationService
             ConversationId = conversationId,
             LastModifiedTime = lastModifiedTime
         };
-        await _userConversationStore.CreateUserConversation(userConversation);
+        await _userConversationStore.UpsertUserConversation(userConversation);
     }
     
     private async Task EnsureThatParticipantsExist(List<string> participants)

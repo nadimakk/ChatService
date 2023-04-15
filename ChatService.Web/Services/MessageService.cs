@@ -9,11 +9,14 @@ namespace ChatService.Web.Services;
 public class MessageService : IMessageService
 {
     private readonly IMessageStore _messageStore;
+    private readonly IUserConversationStore _userConversationStore;
     private readonly IProfileService _profileService;
 
-    public MessageService(IMessageStore messageStore, IProfileService profileService)
+    public MessageService(IMessageStore messageStore, IUserConversationStore userConversationStore, 
+        IProfileService profileService)
     {
         _messageStore = messageStore;
+        _userConversationStore = userConversationStore;
         _profileService = profileService;
     }
 
@@ -42,6 +45,8 @@ public class MessageService : IMessageService
 
         await _messageStore.AddMessage(conversationId, message);
 
+        await UpdateUserConversationsLastModifiedTime(conversationId, unixTimeNow);
+        
         return new SendMessageResponse
         {
             CreatedUnixTime = unixTimeNow
@@ -61,6 +66,24 @@ public class MessageService : IMessageService
         // await CheckIfConversationExists(conversationId);
         
         return await _messageStore.GetMessages(conversationId, parameters);
+    }
+
+    private async Task UpdateUserConversationsLastModifiedTime(string conversationId, long unixTime)
+    {
+        string[] usernames = ConversationIdUtilities.SplitConversationId(conversationId);
+        List<UserConversation> userConversations = new();
+        
+        foreach (string username in usernames)
+        {
+            userConversations.Add(new UserConversation
+            {
+                ConversationId = conversationId,
+                Username = username,
+                LastModifiedTime = unixTime
+            });
+        }
+        
+        await Task.WhenAll(userConversations.Select(_userConversationStore.UpsertUserConversation));
     }
 
     private void ValidateSendMessageRequest(SendMessageRequest request)

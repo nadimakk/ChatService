@@ -50,9 +50,9 @@ public class CosmosProfileStoreIntegrationTests : IClassFixture<WebApplicationFa
     [InlineData("foobar", "Foo", null, "dummy_id")]
     [InlineData("foobar", "Foo", "", "dummy_id")]
     [InlineData("foobar", "Foo", " ", "dummy_id")]
-    [InlineData("foobar", "Foo", "Bar", null)]
-    [InlineData("foobar", "Foo", "Bar","")]
-    [InlineData("foobar", "Foo", "Bar"," ")]
+    // [InlineData("foobar", "Foo", "Bar", null)]
+    // [InlineData("foobar", "Foo", "Bar","")]
+    // [InlineData("foobar", "Foo", "Bar"," ")]
     public async Task AddNewProfile_InvalidArgs(string username, string firstName, string lastName, string profilePictureId)
     {
         Profile profile = new()

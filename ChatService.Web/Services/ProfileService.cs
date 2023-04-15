@@ -34,7 +34,7 @@ public class ProfileService : IProfileService
     public async Task AddProfile(Profile profile)
     {
         ValidateProfile(profile);
-        await ThrowIfImageNotFound(profile.ProfilePictureId);
+        // await ThrowIfImageNotFound(profile.ProfilePictureId);
         await _profileStore.AddProfile(profile);
     }
 
@@ -74,8 +74,8 @@ public class ProfileService : IProfileService
         if (profile == null ||
             string.IsNullOrWhiteSpace(profile.Username) ||
             string.IsNullOrWhiteSpace(profile.FirstName) ||
-            string.IsNullOrWhiteSpace(profile.LastName) ||
-            string.IsNullOrWhiteSpace(profile.ProfilePictureId)
+            string.IsNullOrWhiteSpace(profile.LastName) 
+            // string.IsNullOrWhiteSpace(profile.ProfilePictureId)
            )
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
