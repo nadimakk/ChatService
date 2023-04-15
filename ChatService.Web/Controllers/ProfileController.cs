@@ -7,12 +7,13 @@ namespace ChatService.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProfilesController : ControllerBase
+// public class ProfilesController : ControllerBase
+public class ProfileController : ControllerBase
 {
     private readonly IProfileService _profileService;
-    private readonly ILogger<ProfilesController> _logger;
+    private readonly ILogger<ProfileController> _logger;
 
-    public ProfilesController(IProfileService profileService, ILogger<ProfilesController> logger)
+    public ProfileController(IProfileService profileService, ILogger<ProfileController> logger)
     {
         _profileService = profileService;
         _logger = logger;

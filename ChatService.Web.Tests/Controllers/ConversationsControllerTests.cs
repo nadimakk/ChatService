@@ -206,7 +206,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
 
         var expectedStartConversationResponse = new StartConversationResponse
         {
-            ConversationId = startConversationServiceResult.ConversationId,
+            Id = startConversationServiceResult.ConversationId,
             CreatedUnixTime = startConversationServiceResult.CreatedUnixTime
         };
         

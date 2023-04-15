@@ -89,7 +89,7 @@ public class ConversationsController : ControllerBase
                 
                 StartConversationResponse response = new()
                 {
-                    ConversationId = result.ConversationId,
+                    Id = result.ConversationId,
                     CreatedUnixTime = result.CreatedUnixTime
                 };
                 
