@@ -10,34 +10,26 @@ public class CosmosProfileStore : IProfileStore
 {
     private readonly CosmosClient _cosmosClient;
 
-    public CosmosProfileStore(CosmosClient cosmosClient, IImageStore imageStore)
+    public CosmosProfileStore(CosmosClient cosmosClient)
     {
         _cosmosClient = cosmosClient;
     }
 
-    private Container Container => _cosmosClient.GetDatabase("chatService").GetContainer("profiles");
+    private Container Container => _cosmosClient.GetDatabase("chatService").GetContainer("sharedContainer");
 
     public async Task AddProfile(Profile profile)
     {
-        if (profile == null ||
-            string.IsNullOrWhiteSpace(profile.username) ||
-            string.IsNullOrWhiteSpace(profile.firstName) ||
-            string.IsNullOrWhiteSpace(profile.lastName) ||
-            string.IsNullOrWhiteSpace(profile.profilePictureId)
-           )
-        {
-            throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
-        }
+        ValidateProfile(profile);
 
         try
         {
-            await Container.CreateItemAsync(ToEntity(profile), new PartitionKey(profile.username));
+            await Container.CreateItemAsync(ToEntity(profile), new PartitionKey(profile.Username));
         }
         catch (CosmosException e)
         {
             if (e.StatusCode == HttpStatusCode.Conflict)
             {
-                throw new UsernameTakenException($"A profile with username {profile.username} already exists.");
+                throw new UsernameTakenException($"A profile with username {profile.Username} already exists.");
             }
             throw;
         }
@@ -87,46 +79,43 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task<bool> ProfileExists(string username)
     {
-        try
-        {
-            await Container.ReadItemAsync<ProfileEntity>(
-                id: username,
-                partitionKey: new PartitionKey(username),
-                new ItemRequestOptions
-                {
-                    ConsistencyLevel = ConsistencyLevel.Session
-                }
-            );
-            return true;
-        }
-        catch (CosmosException e)
-        {
-            if (e.StatusCode == HttpStatusCode.NotFound)
-            {
-                return false;
-            }
-            throw;
-        }
+        Profile? profile = await GetProfile(username);
+
+        return profile != null;
     }
 
     private static ProfileEntity ToEntity(Profile profile)
     {
         return new ProfileEntity(
-            partitionKey: profile.username,
-            id: profile.username,
-            profile.firstName,
-            profile.lastName,
-            profile.profilePictureId
+            partitionKey: profile.Username,
+            id: profile.Username,
+            profile.FirstName,
+            profile.LastName,
+            profile.ProfilePictureId
         );
     }
 
     private static Profile ToProfile(ProfileEntity entity)
     {
-        return new Profile(
-            username: entity.id,
-            entity.firstName,
-            entity.lastName,
-            entity.profilePictureId
-        );
+        return new Profile
+        {
+            Username = entity.id,
+            FirstName = entity.FirstName,
+            LastName = entity.LastName,
+            ProfilePictureId = entity.ProfilePictureId
+        };
+    }
+    
+    private void ValidateProfile(Profile profile)
+    {
+        if (profile == null ||
+            string.IsNullOrWhiteSpace(profile.Username) ||
+            string.IsNullOrWhiteSpace(profile.FirstName) ||
+            string.IsNullOrWhiteSpace(profile.LastName) ||
+            string.IsNullOrWhiteSpace(profile.ProfilePictureId)
+           )
+        {
+            throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
+        }
     }
 }
