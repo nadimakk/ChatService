@@ -176,6 +176,19 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetUserConversations_ThirdPartyServiceUnavailable()
+    {
+        _userConversationServiceMock.Setup(m => m.GetUserConversations(
+                _username, _getUserConversationsParameters))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+        
+        var response = await _httpClient.GetAsync(
+            $"api/Conversations/?username={_username}&");
+        
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
     
     [Fact]
     public async Task StartConversation_Success()
@@ -246,6 +259,19 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
+    public async Task StartConversation_ThirdPartyServiceUnavailable()
+    {
+        _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
+                p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
+                     && p.FirstMessage == _startConversationRequest.FirstMessage)))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+
+        var response = await _httpClient.PostAsJsonAsync($"api/Conversations/", _startConversationRequest);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+    
+    [Fact]
     public async Task GetMessages_Success()
     {
         List<Message> messages = new();
@@ -306,6 +332,17 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task GetMessages_ThirdPartyServiceUnavailable()
+    {
+        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, _getMessagesParameters))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+
+        var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
     
     [Fact]
@@ -390,7 +427,19 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
+    
+    [Fact]
+    public async Task PostMessage_ThirdPartyServiceUnavailable()
+    {
+        _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+        
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/api/conversations/{_conversationId}/messages/", _sendMessageRequest);
 
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+    
     private static Conversation CreateConversation()
     {
         return new Conversation

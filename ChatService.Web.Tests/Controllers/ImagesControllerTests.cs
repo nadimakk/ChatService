@@ -82,6 +82,18 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
     }
     
     [Fact]
+    public async Task UploadImage_ThirdPartyServiceUnavailable()
+    {
+        _imageServiceMock.Setup(m => m.UploadImage(It.IsAny<Image>()))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+        _content.Add(_fileContent,"File", "image.jpeg");
+
+        var response = await _httpClient.PostAsync("api/Images/", _content);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+    
+    [Fact]
     public async Task DownloadImage_Success()
     {
         var fileContentResult = new FileContentResult(_image.Content.ToArray(), _image.ContentType);
@@ -121,5 +133,16 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
         var response = await _httpClient.GetAsync($"api/Images/{_imageId}");
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task DownloadImage_ThirdPartyServiceUnavailable()
+    {
+        _imageServiceMock.Setup(m => m.DownloadImage(_imageId))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+
+        var response = await _httpClient.GetAsync($"api/Images/{_imageId}");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
 }
