@@ -33,6 +33,10 @@ public class ProfilesController : ControllerBase
             {
                 return NotFound(e.Message);
             }
+            catch (ThirdPartyServiceUnavailableException e)
+            {
+                return new ObjectResult(e.Message) { StatusCode = 503 };
+            }
         }
     }
     
@@ -47,7 +51,7 @@ public class ProfilesController : ControllerBase
                 _logger.LogInformation("Created Profile for user {ProfileUsername}.", profile.Username);
                 return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
             }
-            catch (Exception e) when (e is ArgumentException || e is ImageNotFoundException || e is InvalidUsernameException)
+            catch (Exception e) when (e is ArgumentException or ImageNotFoundException || e is InvalidUsernameException)
             {
                 return BadRequest(e.Message);
             }
@@ -55,7 +59,11 @@ public class ProfilesController : ControllerBase
             {
                 _logger.LogError(e, "Error posting profile: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
-            }   
+            }
+            catch (ThirdPartyServiceUnavailableException e)
+            {
+                return new ObjectResult(e.Message) { StatusCode = 503 };
+            }
         }
     }
 }
