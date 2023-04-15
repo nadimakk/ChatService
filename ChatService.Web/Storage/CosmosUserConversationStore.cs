@@ -1,8 +1,10 @@
 using System.Net;
+using System.Reflection.PortableExecutable;
 using ChatService.Web.Dtos;
 using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage.Entities;
+using ChatService.Web.Utilities;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 
@@ -33,6 +35,7 @@ public class CosmosUserConversationStore : IUserConversationStore
             {
                 throw new UserConversationExistsException($"A user conversation with conversation ID {userConversation.ConversationId} already exists.");
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -60,6 +63,7 @@ public class CosmosUserConversationStore : IUserConversationStore
             {
                 return null;
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -115,6 +119,7 @@ public class CosmosUserConversationStore : IUserConversationStore
             {
                 throw new InvalidContinuationTokenException($"Continuation token {parameters.ContinuationToken} is invalid.");
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -133,6 +138,7 @@ public class CosmosUserConversationStore : IUserConversationStore
             {
                 return;
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }

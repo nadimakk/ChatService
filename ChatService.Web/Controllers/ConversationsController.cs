@@ -41,7 +41,7 @@ public class ConversationsController : ControllerBase
                 LastSeenConversationTime = lastSeenConversationTime
             };
             GetConversationsResult result = await _userConversationService.GetUserConversations(username, parameters);
-            
+
             string nextUri = "";
             if (result.NextContinuationToken != null)
             {
@@ -60,13 +60,17 @@ public class ConversationsController : ControllerBase
 
             return Ok(response);
         }
-        catch (Exception e) when (e is ArgumentException || e is InvalidContinuationTokenException)
+        catch (Exception e) when (e is ArgumentException or InvalidContinuationTokenException)
         {
             return BadRequest(e.Message);
         }
         catch (UserNotFoundException e)
         {
             return NotFound(e.Message);
+        }
+        catch (ThirdPartyServiceUnavailableException e)
+        {
+            return new ObjectResult(e.Message) { StatusCode = 503 };
         }
     }
 
@@ -105,10 +109,14 @@ public class ConversationsController : ControllerBase
                 _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
                 return new ObjectResult(e.Message) { StatusCode = 403 };
             }
-            catch (Exception e) when (e is MessageExistsException || e is UserConversationExistsException)
+            catch (Exception e) when (e is MessageExistsException or UserConversationExistsException)
             {
                 _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
+            }
+            catch (ThirdPartyServiceUnavailableException e)
+            {
+                return new ObjectResult(e.Message) { StatusCode = 503 };
             }
         }
     }
@@ -144,13 +152,17 @@ public class ConversationsController : ControllerBase
             };
             return Ok(response);
         }
-        catch (Exception e) when (e is ArgumentException || e is InvalidContinuationTokenException)
+        catch (Exception e) when (e is ArgumentException or InvalidContinuationTokenException)
         {
             return BadRequest(e.Message);
         }
         catch (ConversationDoesNotExistException e)
         {
             return NotFound(e.Message);
+        }
+        catch (ThirdPartyServiceUnavailableException e)
+        {
+            return new ObjectResult(e.Message) { StatusCode = 503 };
         }
     }
 
@@ -181,7 +193,7 @@ public class ConversationsController : ControllerBase
                 _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
                 return new ObjectResult(e.Message) { StatusCode = 403 };
             }
-            catch (Exception e) when (e is UserNotFoundException || e is ConversationDoesNotExistException)
+            catch (Exception e) when (e is UserNotFoundException or ConversationDoesNotExistException)
             {
                 return NotFound(e.Message);
             }
@@ -189,6 +201,10 @@ public class ConversationsController : ControllerBase
             {
                 _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
+            }
+            catch (ThirdPartyServiceUnavailableException e)
+            {
+                return new ObjectResult(e.Message) { StatusCode = 503 };
             }
         }
     }

@@ -3,6 +3,7 @@ using ChatService.Web.Dtos;
 using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage.Entities;
+using ChatService.Web.Utilities;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 
@@ -33,6 +34,7 @@ public class CosmosMessageStore : IMessageStore
             {
                 throw new MessageExistsException($"A message with ID {message.MessageId} already exists.");
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -60,6 +62,7 @@ public class CosmosMessageStore : IMessageStore
             {
                 return null;
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -114,6 +117,7 @@ public class CosmosMessageStore : IMessageStore
             {
                 throw new InvalidContinuationTokenException($"Continuation token {parameters.ContinuationToken} is invalid.");
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -145,6 +149,7 @@ public class CosmosMessageStore : IMessageStore
             {
                 return;
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }

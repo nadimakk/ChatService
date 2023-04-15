@@ -2,6 +2,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using ChatService.Web.Dtos;
+using ChatService.Web.Utilities;
 
 namespace ChatService.Web.Storage;
 
@@ -18,17 +19,25 @@ public class BlobImageStore : IImageStore
 
     public async Task<string> UploadImage(Image image)
     {
-        ValidateImage(image);
-
-        string imageId = Guid.NewGuid().ToString();
-        BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);
-        BlobHttpHeaders headers = new()
+        try
         {
-            ContentType = image.ContentType
-        };
-        image.Content.Position = 0;
-        await blobClient.UploadAsync(image.Content, headers);
-        return imageId;
+            ValidateImage(image);
+
+            string imageId = Guid.NewGuid().ToString();
+            BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);
+            BlobHttpHeaders headers = new()
+            {
+                ContentType = image.ContentType
+            };
+            image.Content.Position = 0;
+            await blobClient.UploadAsync(image.Content, headers);
+            return imageId;
+        }
+        catch (RequestFailedException ex)
+        {
+            ServiceAvailabilityCheckerUtilities.ThrowIfBlobUnavailable(ex);
+            throw;
+        }
     }
 
     public async Task<Image?> DownloadImage(string id)
@@ -49,6 +58,7 @@ public class BlobImageStore : IImageStore
             {
                 return null;
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfBlobUnavailable(ex);
             throw;
         }
     }

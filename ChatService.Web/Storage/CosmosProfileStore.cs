@@ -2,6 +2,7 @@ using System.Net;
 using ChatService.Web.Dtos;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage.Entities;
+using ChatService.Web.Utilities;
 using Microsoft.Azure.Cosmos;
 
 namespace ChatService.Web.Storage;
@@ -31,6 +32,7 @@ public class CosmosProfileStore : IProfileStore
             {
                 throw new UsernameTakenException($"A profile with username {profile.Username} already exists.");
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -55,6 +57,7 @@ public class CosmosProfileStore : IProfileStore
             {
                 return null;
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }
@@ -73,6 +76,7 @@ public class CosmosProfileStore : IProfileStore
             {
                 return;
             }
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }
     }

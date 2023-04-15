@@ -19,6 +19,10 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     private readonly Mock<IMessageService> _messageServiceMock = new();
     
     private static readonly string _username = Guid.NewGuid().ToString();
+    private readonly string _conversationId = Guid.NewGuid().ToString();
+    private readonly static long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private readonly static string _nextContinuationToken = Guid.NewGuid().ToString();
+    private readonly string _nonUrlCharactersContinuationToken = "+\"#%&+/?:";
 
     private GetMessagesParameters _getMessagesParameters = new()
     {
@@ -43,16 +47,16 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         Text = "Hello"
     };
     
-    private readonly string _conversationId = Guid.NewGuid().ToString();
-    
-    private readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-    
-    private readonly string _nextContinuationToken = Guid.NewGuid().ToString();
-
     private readonly StartConversationRequest _startConversationRequest = new()
     {
         Participants = new List<string> { _username, Guid.NewGuid().ToString() },
         FirstMessage = _sendMessageRequest
+    };
+    
+    private readonly GetConversationsResult _getConversationsResult = new()
+    {
+        Conversations = new List<Conversation>{ CreateConversation(), CreateConversation() },
+        NextContinuationToken = _nextContinuationToken
     };
     
     public ConversationsControllerTests(WebApplicationFactory<Program> factory)
@@ -70,31 +74,13 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task GetUserConversations_Success()
     {
-        List<Conversation> conversations = new();
-        conversations.Add(new Conversation
-        {
-            ConversationId = Guid.NewGuid().ToString(),
-            LastModifiedUnixTime = _unixTimeNow
-        });
-        conversations.Add(new Conversation
-        {
-            ConversationId = Guid.NewGuid().ToString(),
-            LastModifiedUnixTime = _unixTimeNow
-        });
-        
-        var getUserConversationsResult = new GetConversationsResult
-        {
-            Conversations = conversations,
-            NextContinuationToken = _nextContinuationToken
-        };
-        
         _userConversationServiceMock.Setup(m => m.GetUserConversations(_username, _getUserConversationsParameters))
-            .ReturnsAsync(getUserConversationsResult);
+            .ReturnsAsync(_getConversationsResult);
         
         string nextUri = "/api/conversations" +
                          $"?username={_username}" +
                          $"&limit={_getUserConversationsParameters.Limit}" +
-                         "&lastSeenConversationTime=0" +
+                         $"&lastSeenConversationTime={_getUserConversationsParameters.LastSeenConversationTime}" +
                          $"&continuationToken={WebUtility.UrlEncode(_nextContinuationToken)}";
 
         var response = await _httpClient.GetAsync($"api/Conversations/?username={_username}");
@@ -102,8 +88,53 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         var receivedGetUserConversationsResponse = JsonConvert.DeserializeObject<GetUserConversationsResponse>(json);
         
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(conversations, receivedGetUserConversationsResponse.Conversations);
+        Assert.Equal(_getConversationsResult.Conversations, receivedGetUserConversationsResponse.Conversations);
         Assert.Equal(nextUri, receivedGetUserConversationsResponse.NextUri);
+    }
+
+    [Fact]
+    public async Task GetUserConversations_ContinuationTokenEncode()
+    {
+        _getUserConversationsParameters.ContinuationToken = null;
+        _getConversationsResult.NextContinuationToken = _nonUrlCharactersContinuationToken;
+        _userConversationServiceMock.Setup(
+                m => m.GetUserConversations(_username, _getUserConversationsParameters))
+            .ReturnsAsync(_getConversationsResult);
+        
+        var response = await _httpClient.GetAsync("/api/conversations" +
+                                                  $"?username={_username}" +
+                                                  $"&limit={_getUserConversationsParameters.Limit}" +
+                                                  $"&lastSeenConversationTime={_getUserConversationsParameters.LastSeenConversationTime}" +
+                                                  $"&continuationToken={_getUserConversationsParameters.ContinuationToken}");
+        var json = await response.Content.ReadAsStringAsync();
+        var receivedGetUserConversationsResponse = JsonConvert.DeserializeObject<GetUserConversationsResponse>(json);
+        
+        string expectedEncodedNextUri = "/api/conversations" +
+                                       $"?username={_username}" +
+                                       $"&limit={_getUserConversationsParameters.Limit}" +
+                                       $"&lastSeenConversationTime={_getUserConversationsParameters.LastSeenConversationTime}" +
+                                       $"&continuationToken={WebUtility.UrlEncode(_getConversationsResult.NextContinuationToken)}";
+        
+        Assert.Equal(expectedEncodedNextUri, receivedGetUserConversationsResponse.NextUri);
+    }
+    
+    [Fact]
+    public async Task GetUserConversations_ContinuationTokenDecode()
+    {
+        _getUserConversationsParameters.ContinuationToken = _nonUrlCharactersContinuationToken;
+        _userConversationServiceMock.Setup(
+                m => m.GetUserConversations(_username, _getUserConversationsParameters))
+            .ReturnsAsync(_getConversationsResult);
+        
+        var response = await _httpClient.GetAsync("/api/conversations" +
+                                                  $"?username={_username}" +
+                                                  $"&limit={_getUserConversationsParameters.Limit}" +
+                                                  $"&lastSeenConversationTime={_getUserConversationsParameters.LastSeenConversationTime}" +
+                                                  $"&continuationToken={WebUtility.UrlEncode(_nonUrlCharactersContinuationToken)}");
+        
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        _userConversationServiceMock.Verify( 
+            m => m.GetUserConversations(_username, _getUserConversationsParameters), Times.Once);
     }
     
     [Fact]
@@ -144,6 +175,19 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             $"api/Conversations/?username={_username}&");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetUserConversations_ThirdPartyServiceUnavailable()
+    {
+        _userConversationServiceMock.Setup(m => m.GetUserConversations(
+                _username, _getUserConversationsParameters))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+        
+        var response = await _httpClient.GetAsync(
+            $"api/Conversations/?username={_username}&");
+        
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
     
     [Fact]
@@ -215,6 +259,19 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
+    public async Task StartConversation_ThirdPartyServiceUnavailable()
+    {
+        _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
+                p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
+                     && p.FirstMessage == _startConversationRequest.FirstMessage)))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+
+        var response = await _httpClient.PostAsJsonAsync($"api/Conversations/", _startConversationRequest);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+    
+    [Fact]
     public async Task GetMessages_Success()
     {
         List<Message> messages = new();
@@ -239,11 +296,11 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         
         _messageServiceMock.Setup(m => m.GetMessages(_conversationId, _getMessagesParameters))
             .ReturnsAsync(getMessagesServiceResult);
-        
+
         string nextUri = $"/api/conversations/{_conversationId}/messages" +
                          $"?limit={_getMessagesParameters.Limit}" +
                          $"&continuationToken={WebUtility.UrlEncode(_nextContinuationToken)}" +
-                         "&lastSeenConversationTime=0";
+                         $"&lastSeenConversationTime={_getUserConversationsParameters.LastSeenConversationTime}";
 
         var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
         var json = await response.Content.ReadAsStringAsync();
@@ -275,6 +332,17 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task GetMessages_ThirdPartyServiceUnavailable()
+    {
+        _messageServiceMock.Setup(m => m.GetMessages(_conversationId, _getMessagesParameters))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+
+        var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
     
     [Fact]
@@ -358,5 +426,26 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             $"/api/conversations/{_conversationId}/messages/", _sendMessageRequest);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task PostMessage_ThirdPartyServiceUnavailable()
+    {
+        _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+        
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/api/conversations/{_conversationId}/messages/", _sendMessageRequest);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+    
+    private static Conversation CreateConversation()
+    {
+        return new Conversation
+        {
+            ConversationId = Guid.NewGuid().ToString(),
+            LastModifiedUnixTime = _unixTimeNow
+        };
     }
 }

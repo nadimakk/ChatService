@@ -59,6 +59,17 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
         
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+    
+    [Fact]
+    public async Task GetProfile_ThirdPartyServiceUnavailable()
+    {
+        _profileServiceMock.Setup(m => m.GetProfile(_profile.Username))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+
+        var response = await _httpClient.GetAsync($"api/Profiles/{_profile.Username}");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
 
     [Fact]
     public async Task PostProfile_Success()
@@ -147,5 +158,16 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
         var response = await _httpClient.PostAsJsonAsync("api/Profiles/", _profile);
         
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task ProfileProfile_ThirdPartyServiceUnavailable()
+    {
+        _profileServiceMock.Setup(m => m.AddProfile(_profile))
+            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+
+        var response = await _httpClient.PostAsJsonAsync("api/Profiles/", _profile);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
 }
