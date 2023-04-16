@@ -25,10 +25,10 @@ public class MessageService : IMessageService
     {
         ValidateSendMessageRequest(request);
         ValidateConversationId(conversationId);
-        // if (!isFirstMessage)
-        // {
-        //     await CheckIfConversationExists(conversationId);
-        // }
+        if (!isFirstMessage)
+        {
+            await CheckIfConversationExists(conversationId);
+        }
         // await ThrowIfUserNotFound(request.SenderUsername);
         
         AuthorizeSender(conversationId, request.SenderUsername);
@@ -63,7 +63,7 @@ public class MessageService : IMessageService
         ValidateConversationId(conversationId);
         ValidateLimit(parameters.Limit);
         ValidateLastSeenConversationTime(parameters.LastSeenMessageTime);
-        // await CheckIfConversationExists(conversationId);
+        await CheckIfConversationExists(conversationId);
         
         return await _messageStore.GetMessages(conversationId, parameters);
     }

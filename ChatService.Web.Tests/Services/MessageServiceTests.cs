@@ -156,18 +156,18 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     //         _conversationId, true, _sendMessageRequest));
     // }
     
-    // [Fact]
-    // public async Task AddMessage_ConversationDoesNotExist()
-    // {
-    //     _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
-    //         .ReturnsAsync(true);
-    //
-    //     _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
-    //         .ReturnsAsync(false);
-    //     
-    //     await Assert.ThrowsAsync<ConversationDoesNotExistException>(() => _messageService.AddMessage(
-    //         _conversationId, false, _sendMessageRequest));
-    // }
+    [Fact]
+    public async Task AddMessage_ConversationDoesNotExist()
+    {
+        _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
+            .ReturnsAsync(true);
+    
+        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+            .ReturnsAsync(false);
+        
+        await Assert.ThrowsAsync<ConversationDoesNotExistException>(() => _messageService.AddMessage(
+            _conversationId, false, _sendMessageRequest));
+    }
 
     [Fact]
     public async Task GetMessages_Success()
@@ -218,15 +218,15 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         await Assert.ThrowsAsync<ArgumentException>(() => _messageService.GetMessages(conversationId, _parameters));
     }
     
-    // [Fact]
-    // public async Task GetMessages_ConversationDoesNotExist()
-    // {
-    //     _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
-    //         .ReturnsAsync(false);
-    //     
-    //     await Assert.ThrowsAsync<ConversationDoesNotExistException>(() => _messageService.GetMessages(
-    //         _conversationId, _parameters));
-    // }
+    [Fact]
+    public async Task GetMessages_ConversationDoesNotExist()
+    {
+        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+            .ReturnsAsync(false);
+        
+        await Assert.ThrowsAsync<ConversationDoesNotExistException>(() => _messageService.GetMessages(
+            _conversationId, _parameters));
+    }
 
     private Message CreateMessage()
     {
