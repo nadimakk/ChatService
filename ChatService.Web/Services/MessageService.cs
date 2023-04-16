@@ -71,19 +71,14 @@ public class MessageService : IMessageService
     private async Task UpdateUserConversationsLastModifiedTime(string conversationId, long unixTime)
     {
         string[] usernames = ConversationIdUtilities.SplitConversationId(conversationId);
-        List<UserConversation> userConversations = new();
+        UserConversation userConversation1 = CreateUserConversationObject(usernames[0], conversationId, 
+            lastModifiedTime: unixTime);
+        UserConversation userConversation2 = CreateUserConversationObject(usernames[1], conversationId, 
+            lastModifiedTime: unixTime);
         
-        foreach (string username in usernames)
-        {
-            userConversations.Add(new UserConversation
-            {
-                ConversationId = conversationId,
-                Username = username,
-                LastModifiedTime = unixTime
-            });
-        }
-        
-        await Task.WhenAll(userConversations.Select(_userConversationStore.UpsertUserConversation));
+        await Task.WhenAll(
+            _userConversationStore.UpsertUserConversation(userConversation1),
+            _userConversationStore.UpsertUserConversation(userConversation2));
     }
 
     private void ValidateSendMessageRequest(SendMessageRequest request)
@@ -148,5 +143,15 @@ public class MessageService : IMessageService
             throw new ConversationDoesNotExistException(
                 $"A conversation partition with the conversationId {conversationId} does not exist.");
         }
+    }
+
+    private UserConversation CreateUserConversationObject(string username, string conversationId, long lastModifiedTime)
+    {
+        return new UserConversation
+        {
+            Username = username,
+            ConversationId = conversationId,
+            LastModifiedTime = lastModifiedTime
+        };
     }
 }

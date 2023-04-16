@@ -86,18 +86,18 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
                 && m.Text == message.Text)), Times.Once);
         
         List<UserConversation> userConversations = CreateUserConversations(_conversationId, _unixTimeNow);
+        String username1 = userConversations.ElementAt(0).Username;
+        String username2 = userConversations.ElementAt(1).Username;
 
         _userConversationStoreMock.Verify(m => 
-            m.UpsertUserConversation(It.Is<UserConversation>(userConversation => 
-                userConversation.ConversationId == _conversationId)), Times.Exactly(2));
+                m.UpsertUserConversation(It.Is<UserConversation>(userConversation => 
+                userConversation.Username == username1 && userConversation.ConversationId == _conversationId)), 
+            Times.Once);        
         
         _userConversationStoreMock.Verify(m => 
             m.UpsertUserConversation(It.Is<UserConversation>(userConversation => 
-                userConversation.Username == userConversations.ElementAt(0).Username)), Times.Once);
-        
-        _userConversationStoreMock.Verify(m => 
-            m.UpsertUserConversation(It.Is<UserConversation>(userConversation => 
-                userConversation.Username == userConversations.ElementAt(1).Username)), Times.Once);
+                userConversation.Username == username2 && userConversation.ConversationId == _conversationId)), 
+            Times.Once);
         
         receivedSendMessageResponse.CreatedUnixTime = _unixTimeNow;
         
