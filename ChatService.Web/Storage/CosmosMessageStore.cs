@@ -32,7 +32,7 @@ public class CosmosMessageStore : IMessageStore
         {
             if (e.StatusCode == HttpStatusCode.Conflict)
             {
-                throw new MessageExistsException($"A message with ID {message.MessageId} already exists.");
+                throw new MessageExistsException($"A message with ID {message.Id} already exists.");
             }
             ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
@@ -158,7 +158,7 @@ public class CosmosMessageStore : IMessageStore
     {
         return new MessageEntity(
             partitionKey: conversationId,
-            id: message.MessageId,
+            id: message.Id,
             message.UnixTime,
             message.SenderUsername,
             message.Text
@@ -169,7 +169,7 @@ public class CosmosMessageStore : IMessageStore
     {
         return new Message
         {
-            MessageId = entity.id,
+            Id = entity.id,
             UnixTime = entity.UnixTime,
             SenderUsername = entity.SenderUsername,
             Text = entity.Text
@@ -179,7 +179,7 @@ public class CosmosMessageStore : IMessageStore
     private void ValidateMessage(Message message)
     {
         if (message == null ||
-            string.IsNullOrWhiteSpace(message.MessageId) ||
+            string.IsNullOrWhiteSpace(message.Id) ||
             string.IsNullOrWhiteSpace(message.SenderUsername) ||
             string.IsNullOrWhiteSpace(message.Text) ||
             message.UnixTime < 0

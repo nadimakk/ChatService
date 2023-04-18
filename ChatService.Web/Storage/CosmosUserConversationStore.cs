@@ -21,20 +21,16 @@ public class CosmosUserConversationStore : IUserConversationStore
     
     private Container Container => _cosmosClient.GetDatabase("chatService").GetContainer("sharedContainer");
 
-    public async Task CreateUserConversation(UserConversation userConversation)
+    public async Task UpsertUserConversation(UserConversation userConversation)
     {
         ValidateUserConversation(userConversation);
 
         try
         {
-            await Container.CreateItemAsync(ToEntity(userConversation), new PartitionKey(userConversation.Username));
+            await Container.UpsertItemAsync(ToEntity(userConversation), new PartitionKey(userConversation.Username));
         }
         catch (CosmosException e)
         {
-            if (e.StatusCode == HttpStatusCode.Conflict)
-            {
-                throw new UserConversationExistsException($"A user conversation with conversation ID {userConversation.ConversationId} already exists.");
-            }
             ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
             throw;
         }

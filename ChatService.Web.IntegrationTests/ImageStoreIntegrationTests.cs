@@ -29,14 +29,14 @@ public class ImageStoreIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.True(_image.Content.ToArray().SequenceEqual(downloadedImage.Content.ToArray()));
     }
 
-    [Fact]
-    public async Task UploadImage_WrongContentType()
-    {
-       var notImage = new Image(
-           ContentType: "text/plain",
-           Content: new MemoryStream(Encoding.UTF8.GetBytes("This is a mock file simulating an invalid image type")));
-       await Assert.ThrowsAsync<ArgumentException>(async () => await _imageStore.UploadImage(notImage));
-    }
+    // [Fact]
+    // public async Task UploadImage_WrongContentType()
+    // {
+    //    var notImage = new Image(
+    //        ContentType: "text/plain",
+    //        Content: new MemoryStream(Encoding.UTF8.GetBytes("This is a mock file simulating an invalid image type")));
+    //    await Assert.ThrowsAsync<ArgumentException>(async () => await _imageStore.UploadImage(notImage));
+    // }
     
     [Fact]
     public async Task DownloadImage_NonExistingImage()

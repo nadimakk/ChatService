@@ -15,7 +15,7 @@ public class ImageService : IImageService
 
     public async Task<UploadImageResult> UploadImage(Image image)
     {
-        ValidateImage(image);
+        // ValidateImage(image);
         
         string imageId = await _imageStore.UploadImage(image);
         

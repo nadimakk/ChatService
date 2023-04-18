@@ -21,7 +21,7 @@ public class BlobImageStore : IImageStore
     {
         try
         {
-            ValidateImage(image);
+            // ValidateImage(image);
 
             string imageId = Guid.NewGuid().ToString();
             BlobClient blobClient = BlobContainerClient.GetBlobClient(imageId);

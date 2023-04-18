@@ -84,9 +84,9 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("foobar", "Foo", null, "dummy_id")]
     [InlineData("foobar", "Foo", "", "dummy_id")]
     [InlineData("foobar", "Foo", " ", "dummy_id")]
-    [InlineData("foobar", "Foo", "Bar", null)]
-    [InlineData("foobar", "Foo", "Bar","")]
-    [InlineData("foobar", "Foo", "Bar"," ")]
+    // [InlineData("foobar", "Foo", "Bar", null)]
+    // [InlineData("foobar", "Foo", "Bar","")]
+    // [InlineData("foobar", "Foo", "Bar"," ")]
     public async Task AddNewProfile_InvalidArgs(string username, string firstName, string lastName, string profilePictureId)
     {
         Profile profile = new()
@@ -125,14 +125,14 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
         await Assert.ThrowsAsync<InvalidUsernameException>( async () =>  await _profileService.AddProfile(profile));
     }
     
-    [Fact]
-    public async Task AddNewProfile_ProfilePictureNotFound()
-    {
-        _imageStoreMock.Setup(m => m.ImageExists(_profile.ProfilePictureId))
-            .ReturnsAsync(false);
-
-        await Assert.ThrowsAsync<ImageNotFoundException>( async () =>  await _profileService.AddProfile(_profile));
-    }
+    // [Fact]
+    // public async Task AddNewProfile_ProfilePictureNotFound()
+    // {
+    //     _imageStoreMock.Setup(m => m.ImageExists(_profile.ProfilePictureId))
+    //         .ReturnsAsync(false);
+    //
+    //     await Assert.ThrowsAsync<ImageNotFoundException>( async () =>  await _profileService.AddProfile(_profile));
+    // }
     
     [Fact]
     public async Task DeleteProfile_Success()

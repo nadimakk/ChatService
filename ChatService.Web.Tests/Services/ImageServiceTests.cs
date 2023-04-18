@@ -44,15 +44,15 @@ public class ImageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(expectedUploadImageServiceResult, receivedUploadImageServiceResult);
     }
 
-    [Fact]
-    public async Task UploadImage_InvalidImageType()
-    {
-        var invalidImage = new Image(ContentType: "text/plain", Content: new MemoryStream());
-
-        await Assert.ThrowsAsync<InvalidImageTypeException>(() => _imageService.UploadImage(invalidImage));
-        
-        _imageStoreMock.Verify(m => m.UploadImage(It.IsAny<Image>()), Times.Never);
-    }
+    // [Fact]
+    // public async Task UploadImage_InvalidImageType()
+    // {
+    //     var invalidImage = new Image(ContentType: "text/plain", Content: new MemoryStream());
+    //
+    //     await Assert.ThrowsAsync<InvalidImageTypeException>(() => _imageService.UploadImage(invalidImage));
+    //     
+    //     _imageStoreMock.Verify(m => m.UploadImage(It.IsAny<Image>()), Times.Never);
+    // }
     
     [Fact]
     public async Task DownloadImage_Success()

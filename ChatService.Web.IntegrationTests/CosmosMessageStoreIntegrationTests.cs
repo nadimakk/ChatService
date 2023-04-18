@@ -36,7 +36,7 @@ public class CosmosMessageStoreIntegrationTests : IClassFixture<WebApplicationFa
     public async Task AddMessage_Success()
     {
         await _messageStore.AddMessage(_conversationId, _message1);
-        var receivedMessage = await _messageStore.GetMessage(_conversationId, _message1.MessageId);
+        var receivedMessage = await _messageStore.GetMessage(_conversationId, _message1.Id);
         Assert.Equal(_message1, receivedMessage);
     }
 
@@ -55,7 +55,7 @@ public class CosmosMessageStoreIntegrationTests : IClassFixture<WebApplicationFa
     {
         Message message = new()
         {
-            MessageId = id,
+            Id = id,
             UnixTime = unixTime,
             SenderUsername = senderUsername,
             Text = text
@@ -86,7 +86,7 @@ public class CosmosMessageStoreIntegrationTests : IClassFixture<WebApplicationFa
     [Fact]
     public async Task GetMessage_MessageNotFound()
     {
-        var message = await _messageStore.GetMessage(_conversationId, _message1.MessageId);
+        var message = await _messageStore.GetMessage(_conversationId, _message1.Id);
         Assert.Null(message);
     }
 
@@ -226,7 +226,7 @@ public class CosmosMessageStoreIntegrationTests : IClassFixture<WebApplicationFa
     {
         return new Message()
         {
-            MessageId = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid().ToString(),
             UnixTime = unixTime,
             SenderUsername = Guid.NewGuid().ToString(),
             Text = text
@@ -241,6 +241,6 @@ public class CosmosMessageStoreIntegrationTests : IClassFixture<WebApplicationFa
     public async Task DisposeAsync()
     {
         await Task.WhenAll(_messages.Select(
-            message => _messageStore.DeleteMessage(_conversationId, message.MessageId)));
+            message => _messageStore.DeleteMessage(_conversationId, message.Id)));
     }
 }

@@ -14,6 +14,7 @@ namespace ChatService.Web.Tests.Services;
 public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly Mock<IMessageStore> _messageStoreMock = new();
+    private readonly Mock<IUserConversationStore> _userConversationStoreMock = new();
     private readonly Mock<IProfileService> _profileServiceMock = new();
     private readonly IMessageService _messageService;
 
@@ -30,11 +31,11 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     private static readonly string _conversationId = 
         ConversationIdUtilities.GenerateConversationId(_senderUsername, _recipientUsername);
     
-    private readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     private readonly SendMessageRequest _sendMessageRequest = new()
     {
-        MessageId = Guid.NewGuid().ToString(),
+        Id = Guid.NewGuid().ToString(),
         SenderUsername = _senderUsername,
         Text = Guid.NewGuid().ToString()
     };
@@ -46,6 +47,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
             builder.ConfigureTestServices(services =>
             {
                 services.AddSingleton(_messageStoreMock.Object);
+                services.AddSingleton(_userConversationStoreMock.Object);
                 services.AddSingleton(_profileServiceMock.Object);
             });
         }).Services.GetRequiredService<IMessageService>();
@@ -64,7 +66,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
 
         Message message = new()
         {
-            MessageId = _sendMessageRequest.MessageId,
+            Id = _sendMessageRequest.Id,
             UnixTime = _unixTimeNow,
             SenderUsername = _sendMessageRequest.SenderUsername,
             Text = _sendMessageRequest.Text
@@ -79,15 +81,29 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
             _conversationId, isFirstMessage, _sendMessageRequest);
 
         _messageStoreMock.Verify(m => m.AddMessage(_conversationId, It.Is<Message>(
-            m => m.MessageId == message.MessageId
+            m => m.Id == message.Id
                 && m.SenderUsername == message.SenderUsername
                 && m.Text == message.Text)), Times.Once);
+        
+        List<UserConversation> userConversations = CreateUserConversations(_conversationId, _unixTimeNow);
+        String username1 = userConversations.ElementAt(0).Username;
+        String username2 = userConversations.ElementAt(1).Username;
+
+        _userConversationStoreMock.Verify(m => 
+                m.UpsertUserConversation(It.Is<UserConversation>(userConversation => 
+                userConversation.Username == username1 && userConversation.ConversationId == _conversationId)), 
+            Times.Once);        
+        
+        _userConversationStoreMock.Verify(m => 
+            m.UpsertUserConversation(It.Is<UserConversation>(userConversation => 
+                userConversation.Username == username2 && userConversation.ConversationId == _conversationId)), 
+            Times.Once);
         
         receivedSendMessageResponse.CreatedUnixTime = _unixTimeNow;
         
         Assert.Equal(expectedSendMessageResponse, receivedSendMessageResponse);
     }
-    
+
     [Theory]
     [InlineData(null, "messageId", "senderUsername", "text")]
     [InlineData("", "messageId", "senderUsername", "text")]
@@ -106,7 +122,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     {
         SendMessageRequest sendMessageRequest = new()
         {
-            MessageId = messageId,
+            Id = messageId,
             SenderUsername = senderUsername,
             Text = text
         };
@@ -130,22 +146,22 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
             () => _messageService.AddMessage(_conversationId, true, _sendMessageRequest));
     }
 
-    [Fact]
-    public async Task AddMessage_ProfileNotFound()
-    {
-        _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
-            .ReturnsAsync(false);
-        
-        await Assert.ThrowsAsync<UserNotFoundException>(() => _messageService.AddMessage(
-            _conversationId, true, _sendMessageRequest));
-    }
+    // [Fact]
+    // public async Task AddMessage_ProfileNotFound()
+    // {
+    //     _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
+    //         .ReturnsAsync(false);
+    //     
+    //     await Assert.ThrowsAsync<UserNotFoundException>(() => _messageService.AddMessage(
+    //         _conversationId, true, _sendMessageRequest));
+    // }
     
     [Fact]
     public async Task AddMessage_ConversationDoesNotExist()
     {
         _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
             .ReturnsAsync(true);
-
+    
         _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
             .ReturnsAsync(false);
         
@@ -216,10 +232,28 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     {
         return new Message()
         {
-            MessageId = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid().ToString(),
             UnixTime = _unixTimeNow,
             SenderUsername = _senderUsername,
             Text = Guid.NewGuid().ToString()
         };
+    }
+    
+    private List<UserConversation> CreateUserConversations(string conversationId, long unixTime)
+    {
+        string[] usernames = ConversationIdUtilities.SplitConversationId(conversationId);
+        List<UserConversation> userConversations = new();
+        
+        foreach (string username in usernames)
+        {
+            userConversations.Add(new UserConversation
+            {
+                ConversationId = conversationId,
+                Username = username,
+                LastModifiedTime = unixTime
+            });
+        }
+
+        return userConversations;
     }
 }

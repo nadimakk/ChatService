@@ -89,7 +89,7 @@ public class ConversationsController : ControllerBase
                 
                 StartConversationResponse response = new()
                 {
-                    ConversationId = result.ConversationId,
+                    Id = result.ConversationId,
                     CreatedUnixTime = result.CreatedUnixTime
                 };
                 
@@ -123,7 +123,7 @@ public class ConversationsController : ControllerBase
 
     [HttpGet("{conversationId}/messages")]
     public async Task<ActionResult<GetMessagesResponse>> GetMessages(string conversationId,
-        int limit = 50, OrderBy orderBy = OrderBy.DESC, string? continuationToken = null, long lastSeenConversationTime = 0)
+        int limit = 50, OrderBy orderBy = OrderBy.DESC, string? continuationToken = null, long lastSeenMessageTime = 0)
     {
         try
         {
@@ -132,7 +132,7 @@ public class ConversationsController : ControllerBase
                 Limit = limit,
                 Order = orderBy,
                 ContinuationToken = continuationToken,
-                LastSeenMessageTime = lastSeenConversationTime
+                LastSeenMessageTime = lastSeenMessageTime
             };
             GetMessagesResult result = await _messageService.GetMessages(conversationId, parameters);
 
@@ -142,7 +142,7 @@ public class ConversationsController : ControllerBase
                 nextUri = $"/api/conversations/{conversationId}/messages" +
                         $"?limit={limit}" +
                         $"&continuationToken={WebUtility.UrlEncode(result.NextContinuationToken)}" +
-                        $"&lastSeenConversationTime={lastSeenConversationTime}";
+                        $"&lastSeenConversationTime={lastSeenMessageTime}";
             }
             
             GetMessagesResponse response = new()
@@ -180,7 +180,7 @@ public class ConversationsController : ControllerBase
                 SendMessageResponse response = await _messageService.AddMessage(conversationId, isFirstMessage: false, request);
             
                 _logger.LogInformation("Adding message {MessageId} to conversation {ConversationId} by sender {SenderUsername}",
-                    request.MessageId, conversationId, request.SenderUsername);
+                    request.Id, conversationId, request.SenderUsername);
                 
                 return CreatedAtAction(nameof(GetMessages), new { conversationId = conversationId }, response);
             }

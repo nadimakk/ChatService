@@ -22,7 +22,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     };
     
     private static readonly UserConversation _userConversation = CreateUserConversation(
-        lastModifiedTime: DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        lastModifiedTime: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
     private static readonly UserConversation _userConversation1 = CreateUserConversation(lastModifiedTime: 100);
     private static readonly UserConversation _userConversation2 = CreateUserConversation(lastModifiedTime: 200);
     private static readonly UserConversation _userConversation3 = CreateUserConversation(lastModifiedTime: 300);
@@ -39,8 +39,25 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     [Fact]
     public async Task CreateUserConversation_Success()
     {
-        await _userConversationStore.CreateUserConversation(_userConversation);
+        await _userConversationStore.UpsertUserConversation(_userConversation);
         var receivedConversation = await _userConversationStore.GetUserConversation(
+            _userConversation.Username, _userConversation.ConversationId);
+        
+        Assert.Equal(_userConversation, receivedConversation);
+    }
+    
+    [Fact]
+    public async Task UpdateUserConversation_Success()
+    {
+        await _userConversationStore.UpsertUserConversation(_userConversation);
+        var receivedConversation = await _userConversationStore.GetUserConversation(
+            _userConversation.Username, _userConversation.ConversationId);
+        
+        Assert.Equal(_userConversation, receivedConversation);
+
+        _userConversation.LastModifiedTime = 100;
+        await _userConversationStore.UpsertUserConversation(_userConversation);
+        receivedConversation = await _userConversationStore.GetUserConversation(
             _userConversation.Username, _userConversation.ConversationId);
         
         Assert.Equal(_userConversation, receivedConversation);
@@ -63,17 +80,9 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
             LastModifiedTime = lastModifiedTime
         };
         await Assert.ThrowsAsync<ArgumentException>(
-            () => _userConversationStore.CreateUserConversation(userConversation));
+            () => _userConversationStore.UpsertUserConversation(userConversation));
     }
-
-    [Fact]
-    public async Task CreateUserConversation_ConversationAlreadyExists()
-    {
-        await _userConversationStore.CreateUserConversation(_userConversation);
-        await Assert.ThrowsAsync<UserConversationExistsException>(
-            () => _userConversationStore.CreateUserConversation(_userConversation));
-    }
-
+    
     [Theory]
     [InlineData(null, "dummyConversationId")]
     [InlineData("", "dummyConversationId")]
@@ -221,7 +230,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     {
         foreach (UserConversation userConversation in userConversations)
         {
-            await _userConversationStore.CreateUserConversation(userConversation);
+            await _userConversationStore.UpsertUserConversation(userConversation);
         }
     }
     
