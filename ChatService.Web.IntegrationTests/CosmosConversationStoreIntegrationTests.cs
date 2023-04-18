@@ -22,7 +22,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     };
     
     private static readonly UserConversation _userConversation = CreateUserConversation(
-        lastModifiedTime: DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        lastModifiedTime: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
     private static readonly UserConversation _userConversation1 = CreateUserConversation(lastModifiedTime: 100);
     private static readonly UserConversation _userConversation2 = CreateUserConversation(lastModifiedTime: 200);
     private static readonly UserConversation _userConversation3 = CreateUserConversation(lastModifiedTime: 300);

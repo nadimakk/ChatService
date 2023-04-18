@@ -31,7 +31,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     private static readonly string _conversationId = 
         ConversationIdUtilities.GenerateConversationId(_senderUsername, _recipientUsername);
     
-    private readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     private readonly SendMessageRequest _sendMessageRequest = new()
     {

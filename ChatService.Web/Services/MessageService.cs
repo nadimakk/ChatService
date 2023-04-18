@@ -33,7 +33,7 @@ public class MessageService : IMessageService
         
         AuthorizeSender(conversationId, request.SenderUsername);
         
-        long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         Message message = new()
         {

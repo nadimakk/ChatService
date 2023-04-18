@@ -20,7 +20,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     
     private static readonly string _username = Guid.NewGuid().ToString();
     private readonly string _conversationId = Guid.NewGuid().ToString();
-    private readonly static long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private readonly static long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     private readonly static string _nextContinuationToken = Guid.NewGuid().ToString();
     private readonly string _nonUrlCharactersContinuationToken = "+\"#%&+/?:";
 

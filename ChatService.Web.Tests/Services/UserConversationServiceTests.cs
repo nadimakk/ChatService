@@ -19,7 +19,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
 
     private readonly IUserConversationService _userConversationService;
 
-    private static readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private static readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     private static readonly List<string> _participants = new()
     {

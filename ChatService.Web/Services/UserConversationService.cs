@@ -37,7 +37,7 @@ public class UserConversationService : IUserConversationService
         };
         await _messageService.AddFirstMessage(conversationId, sendMessageRequest);
         
-        long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         
         await Task.WhenAll(
             CreateUserConversation(username1, conversationId, unixTimeNow),
