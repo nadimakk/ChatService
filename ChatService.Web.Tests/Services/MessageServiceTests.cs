@@ -146,15 +146,15 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
             () => _messageService.AddMessage(_conversationId, true, _sendMessageRequest));
     }
 
-    // [Fact]
-    // public async Task AddMessage_ProfileNotFound()
-    // {
-    //     _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
-    //         .ReturnsAsync(false);
-    //     
-    //     await Assert.ThrowsAsync<UserNotFoundException>(() => _messageService.AddMessage(
-    //         _conversationId, true, _sendMessageRequest));
-    // }
+    [Fact]
+    public async Task AddMessage_ProfileNotFound()
+    {
+        _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
+            .ReturnsAsync(false);
+        
+        await Assert.ThrowsAsync<UserNotFoundException>(() => _messageService.AddMessage(
+            _conversationId, true, _sendMessageRequest));
+    }
     
     [Fact]
     public async Task AddMessage_ConversationDoesNotExist()
