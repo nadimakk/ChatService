@@ -12,7 +12,7 @@ public class ServiceAvailabilityCheckerUtilities
     {
         if (e.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
-            throw new ThirdPartyServiceUnavailableException(e.Message);
+            throw new CosmosServiceUnavailableException(e.Message);
         }
     }
     
@@ -20,7 +20,7 @@ public class ServiceAvailabilityCheckerUtilities
     {
         if (e.Status == 503)
         {
-            throw new ThirdPartyServiceUnavailableException(e.Message);
+            throw new BlobServiceUnavailableException(e.Message);
         }
     }
 }

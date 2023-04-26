@@ -61,10 +61,10 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
     }
     
     [Fact]
-    public async Task GetProfile_ThirdPartyServiceUnavailable()
+    public async Task GetProfile_CosmosServiceUnavailable()
     {
         _profileServiceMock.Setup(m => m.GetProfile(_profile.Username))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new CosmosServiceUnavailableException("Cosmos service is unavailable."));
 
         var response = await _httpClient.GetAsync($"api/Profile/{_profile.Username}");
 
@@ -158,10 +158,10 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
     }
     
     [Fact]
-    public async Task ProfileProfile_ThirdPartyServiceUnavailable()
+    public async Task ProfileProfile_CosmosServiceUnavailable()
     {
         _profileServiceMock.Setup(m => m.AddProfile(_profile))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new CosmosServiceUnavailableException("Cosmos service is unavailable."));
 
         var response = await _httpClient.PostAsJsonAsync("api/Profile/", _profile);
 

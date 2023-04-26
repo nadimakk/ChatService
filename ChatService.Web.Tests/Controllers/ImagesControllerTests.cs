@@ -80,10 +80,10 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
     }
     
     [Fact]
-    public async Task UploadImage_ThirdPartyServiceUnavailable()
+    public async Task UploadImage_BlobServiceUnavailable()
     {
         _imageServiceMock.Setup(m => m.UploadImage(It.IsAny<Image>()))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new BlobServiceUnavailableException("Blob service is unavailable."));
         _content.Add(_fileContent,"File", "image.jpeg");
 
         var response = await _httpClient.PostAsync("api/Images/", _content);
@@ -134,10 +134,10 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
     }
     
     [Fact]
-    public async Task DownloadImage_ThirdPartyServiceUnavailable()
+    public async Task DownloadImage_BlobServiceUnavailable()
     {
         _imageServiceMock.Setup(m => m.DownloadImage(_imageId))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new BlobServiceUnavailableException("Blob service is unavailable."));
 
         var response = await _httpClient.GetAsync($"api/Images/{_imageId}");
 

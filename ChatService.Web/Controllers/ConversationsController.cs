@@ -68,10 +68,6 @@ public class ConversationsController : ControllerBase
         {
             return NotFound(e.Message);
         }
-        catch (ThirdPartyServiceUnavailableException e)
-        {
-            return new ObjectResult(e.Message) { StatusCode = 503 };
-        }
     }
 
     [HttpPost]
@@ -113,10 +109,6 @@ public class ConversationsController : ControllerBase
             {
                 _logger.LogError(e, "Error creating user conversation: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
-            }
-            catch (ThirdPartyServiceUnavailableException e)
-            {
-                return new ObjectResult(e.Message) { StatusCode = 503 };
             }
         }
     }
@@ -160,10 +152,6 @@ public class ConversationsController : ControllerBase
         {
             return NotFound(e.Message);
         }
-        catch (ThirdPartyServiceUnavailableException e)
-        {
-            return new ObjectResult(e.Message) { StatusCode = 503 };
-        }
     }
 
     [HttpPost("{conversationId}/messages")]
@@ -201,10 +189,6 @@ public class ConversationsController : ControllerBase
             {
                 _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
-            }
-            catch (ThirdPartyServiceUnavailableException e)
-            {
-                return new ObjectResult(e.Message) { StatusCode = 503 };
             }
         }
     }
