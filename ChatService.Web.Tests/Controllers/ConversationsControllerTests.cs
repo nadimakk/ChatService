@@ -178,11 +178,11 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
 
     [Fact]
-    public async Task GetUserConversations_ThirdPartyServiceUnavailable()
+    public async Task GetUserConversations_CosmosServiceUnavailable()
     {
         _userConversationServiceMock.Setup(m => m.GetUserConversations(
                 _username, _getUserConversationsParameters))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new CosmosServiceUnavailableException("Cosmos service is unavailable."));
         
         var response = await _httpClient.GetAsync(
             $"api/Conversations/?username={_username}&");
@@ -259,12 +259,12 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
-    public async Task StartConversation_ThirdPartyServiceUnavailable()
+    public async Task StartConversation_CosmosServiceUnavailable()
     {
         _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
                 p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                      && p.FirstMessage == _startConversationRequest.FirstMessage)))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new CosmosServiceUnavailableException("Cosmos service is unavailable."));
 
         var response = await _httpClient.PostAsJsonAsync($"api/Conversations/", _startConversationRequest);
 
@@ -335,10 +335,10 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
-    public async Task GetMessages_ThirdPartyServiceUnavailable()
+    public async Task GetMessages_CosmosServiceUnavailable()
     {
         _messageServiceMock.Setup(m => m.GetMessages(_conversationId, _getMessagesParameters))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new CosmosServiceUnavailableException("Cosmos service is unavailable."));
 
         var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/");
 
@@ -429,10 +429,10 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     }
     
     [Fact]
-    public async Task PostMessage_ThirdPartyServiceUnavailable()
+    public async Task PostMessage_CosmosServiceUnavailable()
     {
         _messageServiceMock.Setup(m => m.AddMessage(_conversationId, false, _sendMessageRequest))
-            .ThrowsAsync(new ThirdPartyServiceUnavailableException("Third party service is unavailable."));
+            .ThrowsAsync(new CosmosServiceUnavailableException("Cosmos service is unavailable."));
         
         var response = await _httpClient.PostAsJsonAsync(
             $"/api/conversations/{_conversationId}/messages/", _sendMessageRequest);

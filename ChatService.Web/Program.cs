@@ -1,5 +1,6 @@
 using Azure.Storage.Blobs;
 using ChatService.Web.Configuration;
+using ChatService.Web.Middleware;
 using ChatService.Web.Services;
 using ChatService.Web.Storage;
 using Microsoft.Azure.Cosmos;
@@ -44,6 +45,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 

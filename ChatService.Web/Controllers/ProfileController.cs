@@ -34,10 +34,6 @@ public class ProfileController : ControllerBase
             {
                 return NotFound(e.Message);
             }
-            catch (ThirdPartyServiceUnavailableException e)
-            {
-                return new ObjectResult(e.Message) { StatusCode = 503 };
-            }
         }
     }
     
@@ -60,10 +56,6 @@ public class ProfileController : ControllerBase
             {
                 _logger.LogError(e, "Error posting profile: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
-            }
-            catch (ThirdPartyServiceUnavailableException e)
-            {
-                return new ObjectResult(e.Message) { StatusCode = 503 };
             }
         }
     }

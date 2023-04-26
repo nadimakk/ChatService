@@ -36,10 +36,6 @@ public class ImagesController : ControllerBase
         {
             return BadRequest(e.Message);
         }
-        catch (ThirdPartyServiceUnavailableException e)
-        {
-            return new ObjectResult(e.Message) { StatusCode = 503 };
-        }
     }
     
     [HttpGet("{imageId}")] 
@@ -57,10 +53,6 @@ public class ImagesController : ControllerBase
         catch (ImageNotFoundException e)
         {
             return NotFound(e.Message);
-        }
-        catch (ThirdPartyServiceUnavailableException e)
-        {
-            return new ObjectResult(e.Message) { StatusCode = 503 };
         }
     }
 }
