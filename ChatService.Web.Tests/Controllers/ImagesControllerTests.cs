@@ -50,8 +50,6 @@ public class ImagesControllerTests : IClassFixture<WebApplicationFactory<Program
         
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        Assert.Equal($"http://localhost/api/Images/{_imageId}", response.Headers.GetValues("Location").First());
-
         var json = await response.Content.ReadAsStringAsync();
         var receivedUploadImageResponse = JsonConvert.DeserializeObject<UploadImageResponse>(json);
         

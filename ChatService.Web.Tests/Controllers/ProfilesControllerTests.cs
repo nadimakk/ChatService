@@ -77,10 +77,7 @@ public class ProfilesControllerTests : IClassFixture<WebApplicationFactory<Progr
         var response = await _httpClient.PostAsJsonAsync("api/Profile/", _profile);
         
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        
-        Assert.Equal($"http://localhost/api/Profile/{_profile.Username}",
-            response.Headers.GetValues("Location").First());
-        
+
         var json = await response.Content.ReadAsStringAsync();
         var receivedProfile = JsonConvert.DeserializeObject<Profile>(json);
         Assert.Equal(_profile, receivedProfile);

@@ -7,7 +7,6 @@ namespace ChatService.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// public class ProfilesController : ControllerBase
 public class ProfileController : ControllerBase
 {
     private readonly IProfileService _profileService;

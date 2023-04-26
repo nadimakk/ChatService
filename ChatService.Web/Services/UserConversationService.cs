@@ -23,7 +23,7 @@ public class UserConversationService : IUserConversationService
     public async Task<StartConversationResult> CreateConversation(StartConversationRequest request)
     {
         ValidateStartConversationRequest(request);
-        // await EnsureThatParticipantsExist(request.Participants);
+        await EnsureThatParticipantsExist(request.Participants);
         
         string username1 = request.Participants.ElementAt(0);
         string username2 = request.Participants.ElementAt(1);
@@ -70,7 +70,7 @@ public class UserConversationService : IUserConversationService
                 $"Invalid lastSeenConversationTime {parameters.LastSeenConversationTime}. lastSeenConversationTime must be greater or equal to 0.");
         }
         
-        // await ThrowIfParticipantNotFound(username);
+        await ThrowIfParticipantNotFound(username);
         
         var result = await _userConversationStore.GetUserConversations(username, parameters);
 

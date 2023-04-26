@@ -29,7 +29,7 @@ public class MessageService : IMessageService
         {
             await CheckIfConversationExists(conversationId);
         }
-        // await ThrowIfUserNotFound(request.SenderUsername);
+        await ThrowIfUserNotFound(request.SenderUsername);
         
         AuthorizeSender(conversationId, request.SenderUsername);
         
