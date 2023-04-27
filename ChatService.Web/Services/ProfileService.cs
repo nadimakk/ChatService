@@ -72,7 +72,6 @@ public class ProfileService : IProfileService
     private void ValidateProfile(Profile profile)
     {
         if (profile == null ||
-            string.IsNullOrWhiteSpace(profile.Username) ||
             string.IsNullOrWhiteSpace(profile.FirstName) ||
             string.IsNullOrWhiteSpace(profile.LastName) 
             // string.IsNullOrWhiteSpace(profile.ProfilePictureId)
@@ -80,16 +79,16 @@ public class ProfileService : IProfileService
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
-        ConversationIdUtilities.ValidateUsername(profile.Username);
+        ValidateUsername(profile.Username);
+        ConversationIdUtilities.ValidateUsernameSeparator(profile.Username);
     }
     
-    private async Task ThrowIfImageNotFound(string profilePictureId)
-    {
-        bool imageExists = await _imageService.ImageExists(profilePictureId);
-        if (!imageExists)
-        {
-            throw new ImageNotFoundException($"Profile picture with ID {profilePictureId} was not found.");
-        }
-    }
-    
+    // private async Task ThrowIfImageNotFound(string profilePictureId)
+    // {
+    //     bool imageExists = await _imageService.ImageExists(profilePictureId);
+    //     if (!imageExists)
+    //     {
+    //         throw new ImageNotFoundException($"Profile picture with ID {profilePictureId} was not found.");
+    //     }
+    // }
 }

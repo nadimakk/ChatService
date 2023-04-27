@@ -91,7 +91,29 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         Assert.Equal(_getConversationsResult.Conversations, receivedGetUserConversationsResponse.Conversations);
         Assert.Equal(nextUri, receivedGetUserConversationsResponse.NextUri);
     }
-
+    
+    [Theory]
+    [InlineData(null, "1", "1")]
+    [InlineData("", "1", "1")]
+    [InlineData(" ", "1", "1")]
+    [InlineData("foobar", null, "1")]
+    [InlineData("foobar", "", "1")]
+    [InlineData("foobar", " ", "1")]
+    [InlineData("foobar", "NaN", "1")]
+    [InlineData("foobar", "1", null)]
+    [InlineData("foobar", "1", "")]
+    [InlineData("foobar", "1", " ")]
+    [InlineData("foobar", "1", "NaN")]
+    public async Task GetUserConversations_InvalidQueryParameters(string username, string limit, string lastSeenConversationTime)
+    {
+        var response = await _httpClient.GetAsync("/api/conversations" +
+                                                  $"?username={username}" +
+                                                  $"&limit={limit}" +
+                                                  $"&lastSeenConversationTime={lastSeenConversationTime}");
+        
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+    
     [Fact]
     public async Task GetUserConversations_ContinuationTokenEncode()
     {
@@ -309,6 +331,24 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(messages, receivedGetMessagesResponse.Messages);
         Assert.Equal(nextUri, receivedGetMessagesResponse.NextUri);
+    }
+    
+    [Theory]
+    [InlineData(null, "1")]
+    [InlineData("", "1")]
+    [InlineData(" ", "1")]
+    [InlineData("Nan","1")]
+    [InlineData("1", null)]
+    [InlineData("1", "")]
+    [InlineData("1", " ")]
+    [InlineData("1", "NaN")]
+    public async Task GetMessages_InvalidQueryParameters(string limit, string lastSeenMessageTime)
+    {
+        var response = await _httpClient.GetAsync($"/api/conversations/{_conversationId}/messages/" +
+                                                  $"?limit={limit}" +
+                                                  $"&lastSeenMessageTime={lastSeenMessageTime}");
+        
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
     
     [Fact]

@@ -28,7 +28,7 @@ public class ConversationIdUtilities
         }
     }
 
-    public static void ValidateUsername(string username)
+    public static void ValidateUsernameSeparator(string username)
     {
         if (username.Contains(Seperator))
         {
