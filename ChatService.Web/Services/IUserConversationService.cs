@@ -5,6 +5,6 @@ namespace ChatService.Web.Services;
 
 public interface IUserConversationService
 {
-    Task<StartConversationResult> CreateConversation(StartConversationRequest request);
+    Task<StartConversationResult> StartConversation(StartConversationRequest request);
     Task<GetConversationsResult> GetUserConversations(string username, GetUserConversationsParameters parameters);
 }

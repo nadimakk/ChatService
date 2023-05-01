@@ -61,7 +61,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
             .ReturnsAsync(true);
 
-        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+        _messageStoreMock.Setup(m => m.ConversationExists(_conversationId))
             .ReturnsAsync(true);
 
         Message message = new()
@@ -136,7 +136,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     {
         _sendMessageRequest.SenderUsername = Guid.NewGuid().ToString();
         
-        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+        _messageStoreMock.Setup(m => m.ConversationExists(_conversationId))
             .ReturnsAsync(true);
         
         _profileServiceMock.Setup(m => m.ProfileExists(_sendMessageRequest.SenderUsername))
@@ -162,7 +162,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
         _profileServiceMock.Setup(m => m.ProfileExists(_senderUsername))
             .ReturnsAsync(true);
     
-        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+        _messageStoreMock.Setup(m => m.ConversationExists(_conversationId))
             .ReturnsAsync(false);
         
         await Assert.ThrowsAsync<ConversationDoesNotExistException>(() => _messageService.AddMessage(
@@ -172,7 +172,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task GetMessages_Success()
     {
-        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+        _messageStoreMock.Setup(m => m.ConversationExists(_conversationId))
             .ReturnsAsync(true);
 
         List<Message> messages = new() { CreateMessage(), CreateMessage() };
@@ -221,7 +221,7 @@ public class MessageServiceTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task GetMessages_ConversationDoesNotExist()
     {
-        _messageStoreMock.Setup(m => m.ConversationPartitionExists(_conversationId))
+        _messageStoreMock.Setup(m => m.ConversationExists(_conversationId))
             .ReturnsAsync(false);
         
         await Assert.ThrowsAsync<ConversationDoesNotExistException>(() => _messageService.GetMessages(

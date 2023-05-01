@@ -221,7 +221,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
             CreatedUnixTime = _unixTimeNow
         };
 
-        _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
+        _userConversationServiceMock.Setup(m => m.StartConversation(It.Is<StartConversationRequest>(
                     p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                          && p.FirstMessage == _startConversationRequest.FirstMessage)))
             .ReturnsAsync(startConversationServiceResult);
@@ -243,7 +243,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task StartConversation_InvalidArguments()
     {
-        _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
+        _userConversationServiceMock.Setup(m => m.StartConversation(It.Is<StartConversationRequest>(
                     p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                          && p.FirstMessage == _startConversationRequest.FirstMessage)))
             .ThrowsAsync(new ArgumentException());
@@ -256,7 +256,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task StartConversation_ProfileNotFound()
     {
-        _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
+        _userConversationServiceMock.Setup(m => m.StartConversation(It.Is<StartConversationRequest>(
                     p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                          && p.FirstMessage == _startConversationRequest.FirstMessage)))
             .ThrowsAsync(new UserNotFoundException($"A user with the username {_username} was not found."));
@@ -269,7 +269,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task StartConversation_MessageExists()
     {
-        _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
+        _userConversationServiceMock.Setup(m => m.StartConversation(It.Is<StartConversationRequest>(
                     p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                          && p.FirstMessage == _startConversationRequest.FirstMessage)))
             .ThrowsAsync(new MessageExistsException(
@@ -283,7 +283,7 @@ public class ConversationsControllerTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task StartConversation_CosmosServiceUnavailable()
     {
-        _userConversationServiceMock.Setup(m => m.CreateConversation(It.Is<StartConversationRequest>(
+        _userConversationServiceMock.Setup(m => m.StartConversation(It.Is<StartConversationRequest>(
                 p => p.Participants.SequenceEqual(_startConversationRequest.Participants) 
                      && p.FirstMessage == _startConversationRequest.FirstMessage)))
             .ThrowsAsync(new CosmosServiceUnavailableException("Cosmos service is unavailable."));

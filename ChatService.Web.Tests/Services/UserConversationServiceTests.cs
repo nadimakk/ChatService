@@ -69,7 +69,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
             .ReturnsAsync(true);
 
-        var response = await _userConversationService.CreateConversation(_startConversationRequest);
+        var response = await _userConversationService.StartConversation(_startConversationRequest);
 
         response.CreatedUnixTime = _unixTimeNow;
 
@@ -93,7 +93,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             FirstMessage = _sendMessageRequest
         };
         await Assert.ThrowsAsync<ArgumentException>( () => 
-            _userConversationService.CreateConversation(startConversationRequest));
+            _userConversationService.StartConversation(startConversationRequest));
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         _startConversationRequest.FirstMessage = sendMessageRequest;
         
         await Assert.ThrowsAsync<ArgumentException>( () => 
-            _userConversationService.CreateConversation(_startConversationRequest));
+            _userConversationService.StartConversation(_startConversationRequest));
     }
 
     [Theory]
@@ -133,7 +133,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             .ReturnsAsync(participant2Exists);
     
         await Assert.ThrowsAsync<UserNotFoundException>( () => 
-            _userConversationService.CreateConversation(_startConversationRequest));
+            _userConversationService.StartConversation(_startConversationRequest));
     }
     
     [Fact]

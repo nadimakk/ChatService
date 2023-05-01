@@ -77,7 +77,7 @@ public class ConversationsController : ControllerBase
         {
             try
             {
-                StartConversationResult result = await _userConversationService.CreateConversation(request);
+                StartConversationResult result = await _userConversationService.StartConversation(request);
                 
                 _logger.LogInformation(
                     "Created user conversation with Id {ConversationId} for user {Username}",
@@ -187,7 +187,6 @@ public class ConversationsController : ControllerBase
             }
             catch (MessageExistsException e)
             {
-                _logger.LogError(e, "Error adding message: {ErrorMessage}", e.Message);
                 return Conflict(e.Message);
             }
         }

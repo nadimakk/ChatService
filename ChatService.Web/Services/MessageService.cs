@@ -43,7 +43,15 @@ public class MessageService : IMessageService
             Text = request.Text
         };
 
-        await _messageStore.AddMessage(conversationId, message);
+        try
+        {
+            await _messageStore.AddMessage(conversationId, message);
+        }
+        catch (MessageExistsException e)
+        {
+            await _messageStore.UpdateMessageTime(conversationId, message);
+            throw;
+        }
 
         await UpdateUserConversationsLastModifiedTime(conversationId, unixTimeNow);
         
@@ -53,11 +61,6 @@ public class MessageService : IMessageService
         };
     }
 
-    public async Task<SendMessageResponse> AddFirstMessage(string conversationId, SendMessageRequest request)
-    {
-        return await AddMessage(conversationId, isFirstMessage: true, request);
-    }
-    
     public async Task<GetMessagesResult> GetMessages(string conversationId, GetMessagesParameters parameters)
     {
         ValidateConversationId(conversationId);
@@ -137,7 +140,7 @@ public class MessageService : IMessageService
     
     private async Task CheckIfConversationExists(string conversationId)
     {
-        bool conversationExists = await _messageStore.ConversationPartitionExists(conversationId);
+        bool conversationExists = await _messageStore.ConversationExists(conversationId);
         if (!conversationExists)
         {
             throw new ConversationDoesNotExistException(

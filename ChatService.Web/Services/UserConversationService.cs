@@ -20,7 +20,7 @@ public class UserConversationService : IUserConversationService
         _profileService = profileService;
     }
 
-    public async Task<StartConversationResult> CreateConversation(StartConversationRequest request)
+    public async Task<StartConversationResult> StartConversation(StartConversationRequest request)
     {
         ValidateStartConversationRequest(request);
         await EnsureThatParticipantsExist(request.Participants);
@@ -35,7 +35,7 @@ public class UserConversationService : IUserConversationService
             SenderUsername = request.FirstMessage.SenderUsername,
             Text = request.FirstMessage.Text
         };
-        await _messageService.AddFirstMessage(conversationId, sendMessageRequest);
+        await _messageService.AddMessage(conversationId, isFirstMessage: true, sendMessageRequest);
         
         long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         

@@ -71,6 +71,19 @@ public class CosmosMessageStoreIntegrationTests : IClassFixture<WebApplicationFa
         await Assert.ThrowsAsync<MessageExistsException>(() => _messageStore.AddMessage(_conversationId, _message1));
     }
 
+    [Fact]
+    public async Task UpdateMessageTime_Success()
+    {
+        await _messageStore.AddMessage(_conversationId, _message1);
+        var receivedMessage = await _messageStore.GetMessage(_conversationId, _message1.Id);
+        Assert.Equal(_message1, receivedMessage);
+
+        _message1.UnixTime = 200;
+        await _messageStore.UpdateMessageTime(_conversationId, _message1);
+        receivedMessage = await _messageStore.GetMessage(_conversationId, _message1.Id);
+        Assert.Equal(_message1, receivedMessage);
+    }
+
     [Theory]
     [InlineData(null, "messageId")]
     [InlineData("", "messageId")]
@@ -205,13 +218,13 @@ public class CosmosMessageStoreIntegrationTests : IClassFixture<WebApplicationFa
     public async Task ConversationPartitionExists_Exists()
     {
         await _messageStore.AddMessage(_conversationId, _message1);
-        Assert.True(await _messageStore.ConversationPartitionExists(_conversationId));
+        Assert.True(await _messageStore.ConversationExists(_conversationId));
     }
     
     [Fact]
     public async Task ConversationPartitionExists_DoesNotExists()
     {
-        Assert.False(await _messageStore.ConversationPartitionExists(_conversationId));
+        Assert.False(await _messageStore.ConversationExists(_conversationId));
     }
     
     private async Task AddMultipleMessages(string conversationId, params Message[] messages)

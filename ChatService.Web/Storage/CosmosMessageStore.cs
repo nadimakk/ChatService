@@ -39,6 +39,21 @@ public class CosmosMessageStore : IMessageStore
         }
     }
 
+    public async Task UpdateMessageTime(string conversationId, Message message)
+    {
+        ValidateMessage(message);
+        
+        try
+        {
+            await Container.UpsertItemAsync(ToEntity(conversationId, message), new PartitionKey(conversationId));
+        }
+        catch (CosmosException e)
+        {
+            ServiceAvailabilityCheckerUtilities.ThrowIfCosmosUnavailable(e);
+            throw;
+        }
+    }
+    
     public async Task<Message?> GetMessage(string conversationId, string messageId)
     {
         ValidateConversationId(conversationId);
@@ -122,7 +137,7 @@ public class CosmosMessageStore : IMessageStore
         }
     }
 
-    public async Task<bool> ConversationPartitionExists(string conversationId)
+    public async Task<bool> ConversationExists(string conversationId)
     {
         GetMessagesParameters parameters = new()
         {
@@ -153,7 +168,7 @@ public class CosmosMessageStore : IMessageStore
             throw;
         }
     }
-
+    
     private static MessageEntity ToEntity(string conversationId, Message message)
     {
         return new MessageEntity(
