@@ -15,6 +15,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     
     private GetUserConversationsParameters _parameters = new()
     {
+        Username = _username,
         Limit = 10,
         Order = OrderBy.DESC,
         ContinuationToken = null,
@@ -109,15 +110,15 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
         await AddMultipleUserConversations(_userConversation1, _userConversation2, _userConversation3);
 
         _parameters.Limit = 1;
-        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        var response = await _userConversationStore.GetUserConversations(_parameters);
         Assert.Single(response.UserConversations);
 
         _parameters.Limit = 2;
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        response = await _userConversationStore.GetUserConversations(_parameters);
         Assert.Equal(2, response.UserConversations.Count);
 
         _parameters.Limit = 3;
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        response = await _userConversationStore.GetUserConversations(_parameters);
         Assert.Equal(3, response.UserConversations.Count);
     }
 
@@ -133,7 +134,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
             _userConversation, _userConversation1, _userConversation2, _userConversation3);
 
         _parameters.Order = orderBy;
-        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        var response = await _userConversationStore.GetUserConversations(_parameters);
         
         if (orderBy == OrderBy.ASC)
         {
@@ -153,7 +154,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
 
         _parameters.Limit = 1;
 
-        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        var response = await _userConversationStore.GetUserConversations(_parameters);
         
         Assert.Equal(_userConversation3, response.UserConversations.ElementAt(0));
 
@@ -161,14 +162,14 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
         Assert.NotNull(nextContinuationToken);
 
         _parameters.ContinuationToken = nextContinuationToken;
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        response = await _userConversationStore.GetUserConversations(_parameters);
         Assert.Equal(_userConversation2, response.UserConversations.ElementAt(0));
         
         nextContinuationToken = response.NextContinuationToken; 
         Assert.NotNull(nextContinuationToken);
 
         _parameters.ContinuationToken = nextContinuationToken;
-        response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        response = await _userConversationStore.GetUserConversations(_parameters);
         Assert.Equal(_userConversation1, response.UserConversations.ElementAt(0));
         
         nextContinuationToken = response.NextContinuationToken;
@@ -196,7 +197,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
         userConversationsExpected.Reverse();
         
         _parameters.LastSeenConversationTime = lastSeenConversationTime;
-        var response = await _userConversationStore.GetUserConversations(_userConversation.Username, _parameters);
+        var response = await _userConversationStore.GetUserConversations(_parameters);
         
         Assert.Equal(userConversationsExpected, response.UserConversations);
     }
@@ -210,10 +211,11 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     [InlineData("username", 10, -100)]
     public async Task GetUserConversations_InvalidArguments(string username, int limit, long lastSeenConversationTime)
     {
+        _parameters.Username = username;
         _parameters.Limit = limit;
         _parameters.LastSeenConversationTime = lastSeenConversationTime;
         await Assert.ThrowsAsync<ArgumentException>(
-            () => _userConversationStore.GetUserConversations(username, _parameters));
+            () => _userConversationStore.GetUserConversations(_parameters));
     }
 
     [Fact]
@@ -223,7 +225,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
         _parameters.ContinuationToken = invalidContinuationToken;
         
         await Assert.ThrowsAsync<InvalidContinuationTokenException>(
-            () => _userConversationStore.GetUserConversations(_userConversation.Username, _parameters));
+            () => _userConversationStore.GetUserConversations(_parameters));
     }
 
     private async Task AddMultipleUserConversations(params UserConversation[] userConversations)

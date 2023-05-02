@@ -169,7 +169,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             NextContinuationToken = nextContinuationToken
         };
         
-        _userConversationStoreMock.Setup(m => m.GetUserConversations(username1, parameters))
+        _userConversationStoreMock.Setup(m => m.GetUserConversations(parameters))
             .ReturnsAsync(result);
         _profileServiceMock.Setup(m => m.GetProfile(username2))
             .ReturnsAsync(profile2);

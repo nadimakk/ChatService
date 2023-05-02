@@ -5,6 +5,7 @@ namespace ChatService.Web.Dtos;
 
 public record GetUserConversationsParameters
 {
+    [Required] public string Username { get; set; }
     [Required] public int Limit { get; set; } 
     [Required] public OrderBy Order { get; set; } 
     public string? ContinuationToken { get; set; }

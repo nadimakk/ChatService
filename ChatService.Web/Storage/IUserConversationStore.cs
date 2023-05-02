@@ -6,6 +6,6 @@ public interface IUserConversationStore
 {
     Task UpsertUserConversation(UserConversation userConversation);
     Task<UserConversation?> GetUserConversation(string username, string conversationId);
-    Task<GetUserConversationsResult> GetUserConversations(string username, GetUserConversationsParameters parameters);
+    Task<GetUserConversationsResult> GetUserConversations(GetUserConversationsParameters parameters);
     Task DeleteUserConversation(string username, string conversationId);
 }

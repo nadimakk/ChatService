@@ -72,7 +72,7 @@ public class UserConversationService : IUserConversationService
         
         await ThrowIfParticipantNotFound(username);
         
-        var result = await _userConversationStore.GetUserConversations(username, parameters);
+        var result = await _userConversationStore.GetUserConversations(parameters);
 
         List<Conversation> conversations = await UserConversationsToConversations(result.UserConversations);
 

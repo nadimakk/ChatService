@@ -1,5 +1,4 @@
 using ChatService.Web.Dtos;
-using ChatService.Web.Enums;
 
 namespace ChatService.Web.Storage;
 

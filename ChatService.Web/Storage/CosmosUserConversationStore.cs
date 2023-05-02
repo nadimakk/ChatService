@@ -64,10 +64,9 @@ public class CosmosUserConversationStore : IUserConversationStore
         }
     }
 
-    public async Task<GetUserConversationsResult> GetUserConversations(string username, 
-        GetUserConversationsParameters parameters)
+    public async Task<GetUserConversationsResult> GetUserConversations(GetUserConversationsParameters parameters)
     {
-        ValidateUsername(username);
+        ValidateUsername(parameters.Username);
         ValidateLimit(parameters.Limit);
         ValidateLastSeenMessageTime(parameters.LastSeenConversationTime);
         
@@ -82,7 +81,7 @@ public class CosmosUserConversationStore : IUserConversationStore
             IQueryable<UserConversationEntity> query = Container
                 .GetItemLinqQueryable<UserConversationEntity>(
                     allowSynchronousQueryExecution: false, parameters.ContinuationToken, options)
-                .Where(e => e.partitionKey == username && e.LastModifiedTime > parameters.LastSeenConversationTime);
+                .Where(e => e.partitionKey == parameters.Username && e.LastModifiedTime > parameters.LastSeenConversationTime);
             
             if (parameters.Order == OrderBy.ASC)
             {
