@@ -80,7 +80,6 @@ public class ProfileService : IProfileService
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
         ValidateUsername(profile.Username);
-        ConversationIdUtilities.ValidateUsernameSeparator(profile.Username);
     }
     
     // private async Task ThrowIfImageNotFound(string profilePictureId)

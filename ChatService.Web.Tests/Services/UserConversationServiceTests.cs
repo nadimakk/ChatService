@@ -3,7 +3,6 @@ using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Services;
 using ChatService.Web.Storage;
-using ChatService.Web.Utilities;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,11 +12,12 @@ namespace ChatService.Web.Tests.Services;
 
 public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly Mock<IMessageService> _messageServiceMock = new();
     private readonly Mock<IUserConversationStore> _userConversationStoreMock = new();
     private readonly Mock<IProfileService> _profileServiceMock = new();
-
-    private readonly IUserConversationService _userConversationService;
+    
+    private const char Separator = '_';
+    
+    private readonly IConversationService _conversationService;
 
     private static readonly long _unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -34,7 +34,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         Text = Guid.NewGuid().ToString()
     };
     
-    private GetUserConversationsParameters _parameters = new()
+    private GetConversationsParameters _parameters = new()
     {
         Limit = 1,
         Order = OrderBy.ASC,
@@ -50,15 +50,14 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
 
     public UserConversationServiceTests(WebApplicationFactory<Program> factory)
     {
-        _userConversationService = factory.WithWebHostBuilder(builder =>
+        _conversationService = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services =>
             {
-                services.AddSingleton(_messageServiceMock.Object);
                 services.AddSingleton(_userConversationStoreMock.Object);
                 services.AddSingleton(_profileServiceMock.Object);
             });
-        }).Services.GetRequiredService<IUserConversationService>();
+        }).Services.GetRequiredService<IConversationService>();
     }
 
     [Fact]
@@ -69,13 +68,13 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(1)))
             .ReturnsAsync(true);
 
-        var response = await _userConversationService.StartConversation(_startConversationRequest);
+        var response = await _conversationService.StartConversation(_startConversationRequest);
 
         response.CreatedUnixTime = _unixTimeNow;
 
         StartConversationResult expected = new()
         {
-            ConversationId = ConversationIdUtilities.GenerateConversationId(
+            ConversationId = GenerateConversationId(
                 _participants.ElementAt(0), _participants.ElementAt(1)),
             CreatedUnixTime = _unixTimeNow
         };
@@ -93,7 +92,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             FirstMessage = _sendMessageRequest
         };
         await Assert.ThrowsAsync<ArgumentException>( () => 
-            _userConversationService.StartConversation(startConversationRequest));
+            _conversationService.StartConversation(startConversationRequest));
     }
 
     [Theory]
@@ -118,7 +117,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         _startConversationRequest.FirstMessage = sendMessageRequest;
         
         await Assert.ThrowsAsync<ArgumentException>( () => 
-            _userConversationService.StartConversation(_startConversationRequest));
+            _conversationService.StartConversation(_startConversationRequest));
     }
 
     [Theory]
@@ -133,7 +132,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             .ReturnsAsync(participant2Exists);
     
         await Assert.ThrowsAsync<UserNotFoundException>( () => 
-            _userConversationService.StartConversation(_startConversationRequest));
+            _conversationService.StartConversation(_startConversationRequest));
     }
     
     [Fact]
@@ -153,15 +152,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             CreateUserConversation(senderUsername: username1, recipientUsername: username2),
             CreateUserConversation(senderUsername: username1, recipientUsername: username3)
         };
-        
-        GetUserConversationsParameters parameters = new()
-        {
-            Limit = 10,
-            Order = OrderBy.DESC,
-            ContinuationToken = null,
-            LastSeenConversationTime = 0
-        };
-        
+
         string nextContinuationToken = Guid.NewGuid().ToString();
         GetUserConversationsResult result = new()
         {
@@ -169,7 +160,11 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             NextContinuationToken = nextContinuationToken
         };
         
-        _userConversationStoreMock.Setup(m => m.GetUserConversations(parameters))
+        _parameters.Username = username1;
+        _parameters.Limit = 10;
+        _parameters.Order = OrderBy.DESC;
+        
+        _userConversationStoreMock.Setup(m => m.GetUserConversations(_parameters))
             .ReturnsAsync(result);
         _profileServiceMock.Setup(m => m.GetProfile(username2))
             .ReturnsAsync(profile2);
@@ -187,10 +182,8 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             Conversations = conversations,
             NextContinuationToken = nextContinuationToken
         };
-
-        _parameters.Limit = 10;
-        _parameters.Order = OrderBy.DESC;
-        var response = await _userConversationService.GetUserConversations(username1, _parameters);
+        
+        var response = await _conversationService.GetConversations(_parameters);
 
         Assert.Equal(expected.Conversations, response.Conversations);
         Assert.Equal(expected.NextContinuationToken, response.NextContinuationToken);
@@ -206,12 +199,12 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     public async Task GetUserConversations_InvalidArguments(
         string username, int limit, OrderBy orderBy, string? continuationToken, long lastSeenConversationTime)
     {
+        _parameters.Username = username;
         _parameters.Limit = limit;
         _parameters.Order = orderBy;
         _parameters.ContinuationToken = continuationToken;
         _parameters.LastSeenConversationTime = lastSeenConversationTime;
-        await Assert.ThrowsAsync<ArgumentException>( () => 
-            _userConversationService.GetUserConversations(username, _parameters));
+        await Assert.ThrowsAsync<ArgumentException>( () => _conversationService.GetConversations(_parameters));
     }
 
     [Fact]
@@ -220,8 +213,10 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         _profileServiceMock.Setup(m => m.ProfileExists(_participants.ElementAt(0)))
             .ReturnsAsync(false);
         
+        _parameters.Username = _participants.ElementAt(0);
+        
         await Assert.ThrowsAsync<UserNotFoundException>( () => 
-            _userConversationService.GetUserConversations(_participants.ElementAt(0), _parameters));
+            _conversationService.GetConversations(_parameters));
     }
     
     public static IEnumerable<object[]> GenerateInvalidParticipantsList(){
@@ -245,7 +240,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
     {
         return new Conversation
         {
-            Id = ConversationIdUtilities.GenerateConversationId(senderUsername, recipientProfile.Username),
+            Id = GenerateConversationId(senderUsername, recipientProfile.Username),
             LastModifiedUnixTime = _unixTimeNow,
             Recipient = recipientProfile
         };
@@ -256,7 +251,7 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
         return new UserConversation
         {
             Username = senderUsername,
-            ConversationId = ConversationIdUtilities.GenerateConversationId(senderUsername, recipientUsername),
+            ConversationId = GenerateConversationId(senderUsername, recipientUsername),
             LastModifiedTime = _unixTimeNow
         };
     }
@@ -270,5 +265,14 @@ public class UserConversationServiceTests : IClassFixture<WebApplicationFactory<
             LastName = Guid.NewGuid().ToString(),
             ProfilePictureId = Guid.NewGuid().ToString()
         };
+    }
+
+    private static string GenerateConversationId(string username1, string username2)
+    {
+        if (username1.CompareTo(username2) < 0)
+        {
+            return username1 + Separator + username2;
+        }
+        return username2 + Separator + username1;
     }
 }

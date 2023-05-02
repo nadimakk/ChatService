@@ -64,7 +64,7 @@ public class CosmosUserConversationStore : IUserConversationStore
         }
     }
 
-    public async Task<GetUserConversationsResult> GetUserConversations(GetUserConversationsParameters parameters)
+    public async Task<GetUserConversationsResult> GetUserConversations(GetConversationsParameters parameters)
     {
         ValidateUsername(parameters.Username);
         ValidateLimit(parameters.Limit);

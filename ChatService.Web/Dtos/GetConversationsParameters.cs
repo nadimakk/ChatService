@@ -3,7 +3,7 @@ using ChatService.Web.Enums;
 
 namespace ChatService.Web.Dtos;
 
-public record GetUserConversationsParameters
+public record GetConversationsParameters
 {
     [Required] public string Username { get; set; }
     [Required] public int Limit { get; set; } 

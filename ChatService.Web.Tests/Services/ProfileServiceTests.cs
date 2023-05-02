@@ -111,20 +111,6 @@ public class ProfileServiceTests : IClassFixture<WebApplicationFactory<Program>>
         await Assert.ThrowsAsync<UsernameTakenException>( async () =>  await _profileService.AddProfile(_profile));
     }
     
-    [Fact]
-    public async Task AddNewProfile_InvalidUsername()
-    {
-        Profile profile = new()
-        {
-            Username = "username_with_underscore",
-            FirstName = "firstName",
-            LastName = "lastName",
-            ProfilePictureId = "profilePictureId"
-        };
-        
-        await Assert.ThrowsAsync<InvalidUsernameException>( async () =>  await _profileService.AddProfile(profile));
-    }
-    
     // [Fact]
     // public async Task AddNewProfile_ProfilePictureNotFound()
     // {

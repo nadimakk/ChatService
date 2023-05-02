@@ -29,8 +29,7 @@ builder.Services.AddSingleton(sp =>
 );
 builder.Services.AddSingleton<IProfileService, ProfileService>();
 builder.Services.AddSingleton<IImageService, ImageService>();
-builder.Services.AddSingleton<IMessageService, MessageService>();
-builder.Services.AddSingleton<IUserConversationService, UserConversationService>();
+builder.Services.AddSingleton<IConversationService, ConversationService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

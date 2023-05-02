@@ -11,19 +11,15 @@ namespace ChatService.Web.Controllers;
 [Route("api/[controller]")]
 public class ConversationsController : ControllerBase
 {
-    private readonly IUserConversationService _userConversationService;
-    private readonly IMessageService _messageService;
+    private readonly IConversationService _conversationService;
     private readonly ILogger<ConversationsController> _logger;
-
-
+    
     public ConversationsController(
-        IUserConversationService userConversationService,
-        IMessageService messageService,
+        IConversationService conversationService,
         ILogger<ConversationsController> logger
         )
     {
-        _userConversationService = userConversationService;
-        _messageService = messageService;
+        _conversationService = conversationService;
         _logger = logger;
     }
 
@@ -33,14 +29,15 @@ public class ConversationsController : ControllerBase
     {
         try
         {
-            GetUserConversationsParameters parameters = new()
+            GetConversationsParameters parameters = new()
             {
+                Username = username,
                 Limit = limit,
                 Order = orderBy,
                 ContinuationToken = continuationToken,
                 LastSeenConversationTime = lastSeenConversationTime
             };
-            GetConversationsResult result = await _userConversationService.GetUserConversations(username, parameters);
+            GetConversationsResult result = await _conversationService.GetConversations(parameters);
 
             string nextUri = "";
             if (result.NextContinuationToken != null)
@@ -77,7 +74,7 @@ public class ConversationsController : ControllerBase
         {
             try
             {
-                StartConversationResult result = await _userConversationService.StartConversation(request);
+                StartConversationResult result = await _conversationService.StartConversation(request);
                 
                 _logger.LogInformation(
                     "Created user conversation with Id {ConversationId} for user {Username}",
@@ -121,12 +118,13 @@ public class ConversationsController : ControllerBase
         {
             GetMessagesParameters parameters = new()
             {
+                ConversationId = conversationId,
                 Limit = limit,
                 Order = orderBy,
                 ContinuationToken = continuationToken,
                 LastSeenMessageTime = lastSeenMessageTime
             };
-            GetMessagesResult result = await _messageService.GetMessages(conversationId, parameters);
+            GetMessagesResult result = await _conversationService.GetMessages(parameters);
 
             string nextUri = "";
             if (result.NextContinuationToken != null)
@@ -165,7 +163,7 @@ public class ConversationsController : ControllerBase
         {
             try
             {
-                SendMessageResponse response = await _messageService.AddMessage(conversationId, isFirstMessage: false, request);
+                SendMessageResponse response = await _conversationService.AddMessage(conversationId, isFirstMessage: false, request);
             
                 _logger.LogInformation("Adding message {MessageId} to conversation {ConversationId} by sender {SenderUsername}",
                     request.Id, conversationId, request.SenderUsername);

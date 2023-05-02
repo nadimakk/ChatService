@@ -18,7 +18,6 @@ public class DiTests : IClassFixture<WebApplicationFactory<Program>>
     {
         _factory.Services.GetRequiredService<IProfileService>();
         _factory.Services.GetRequiredService<IImageService>();
-        _factory.Services.GetRequiredService<IUserConversationService>();
-        _factory.Services.GetRequiredService<IMessageService>();
+        _factory.Services.GetRequiredService<IConversationService>();
     }
 }

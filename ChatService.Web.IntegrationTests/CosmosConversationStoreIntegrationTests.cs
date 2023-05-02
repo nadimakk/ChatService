@@ -13,7 +13,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     
     private static readonly string _username = Guid.NewGuid().ToString();
     
-    private GetUserConversationsParameters _parameters = new()
+    private GetConversationsParameters _parameters = new()
     {
         Username = _username,
         Limit = 10,
