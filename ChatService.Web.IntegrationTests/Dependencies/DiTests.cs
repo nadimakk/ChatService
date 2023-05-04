@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ChatService.Web.Tests.Dependencies;
+namespace ChatService.Web.IntegrationTests.Dependencies;
 
 public class DiTests : IClassFixture<WebApplicationFactory<Program>>
 {
