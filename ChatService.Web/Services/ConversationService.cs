@@ -289,7 +289,7 @@ public class ConversationService : IConversationService
 
     private void ValidateConversationId(string conversationId)
     {
-        if (string.IsNullOrWhiteSpace(conversationId) || !conversationId.Contains(Seperator))
+        if (string.IsNullOrWhiteSpace(conversationId))
         {
             throw new ArgumentException($"Invalid conversationId {conversationId}.");
         }
