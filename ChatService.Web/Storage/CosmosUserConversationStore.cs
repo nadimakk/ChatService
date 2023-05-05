@@ -1,5 +1,4 @@
 using System.Net;
-using System.Reflection.PortableExecutable;
 using ChatService.Web.Dtos;
 using ChatService.Web.Enums;
 using ChatService.Web.Exceptions;
@@ -143,6 +142,7 @@ public class CosmosUserConversationStore : IUserConversationStore
         return new UserConversationEntity(
             partitionKey: userConversation.Username,
             id: userConversation.ConversationId,
+            OtherParticipantUsername: userConversation.OtherParticipantUsername,
             userConversation.LastModifiedTime
         );
     }
@@ -152,6 +152,7 @@ public class CosmosUserConversationStore : IUserConversationStore
         return new UserConversation {
             Username = entity.partitionKey,
             ConversationId = entity.id,
+            OtherParticipantUsername = entity.OtherParticipantUsername,
             LastModifiedTime = entity.LastModifiedTime
         };
     }
@@ -161,6 +162,7 @@ public class CosmosUserConversationStore : IUserConversationStore
         if (userConversation == null ||
             string.IsNullOrWhiteSpace(userConversation.Username) ||
             string.IsNullOrWhiteSpace(userConversation.ConversationId) ||
+            string.IsNullOrWhiteSpace(userConversation.OtherParticipantUsername) ||
             userConversation.LastModifiedTime < 0
            )
         {

@@ -1,7 +1,6 @@
 ﻿using ChatService.Web.Dtos;
 using ChatService.Web.Exceptions;
 using ChatService.Web.Storage;
-using ChatService.Web.Utilities;
 
 namespace ChatService.Web.Services;
 
@@ -10,7 +9,7 @@ public class ConversationService : IConversationService
     private readonly IUserConversationStore _userConversationStore;
     private readonly IMessageStore _messageStore;
     private readonly IProfileService _profileService;
-    private static readonly char Seperator = '_';
+    private static readonly char Separator = '_';
     
     public ConversationService(IUserConversationStore userConversationStore, IMessageStore messageStore, IProfileService profileService)
     {
@@ -39,8 +38,16 @@ public class ConversationService : IConversationService
         long unixTimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         
         await Task.WhenAll(
-            CreateUserConversation(username1, conversationId, unixTimeNow),
-            CreateUserConversation(username2, conversationId, unixTimeNow)
+            CreateUserConversation(
+                senderUsername: username1, 
+                conversationId,
+                recipientUsername: username2, 
+                unixTimeNow),
+            CreateUserConversation(
+                senderUsername: username2, 
+                conversationId, 
+                recipientUsername: username1, 
+                unixTimeNow)
         );
         
         return new StartConversationResult
@@ -120,9 +127,17 @@ public class ConversationService : IConversationService
     private async Task UpdateUserConversationsLastModifiedTime(string conversationId, long unixTime)
     {
         string[] usernames = SplitConversationId(conversationId);
-        UserConversation userConversation1 = CreateUserConversationObject(usernames[0], conversationId, 
+        
+        UserConversation userConversation1 = CreateUserConversationObject(
+            senderUsername: usernames[0], 
+            conversationId, 
+            recipientUsername: usernames[1],
             lastModifiedTime: unixTime);
-        UserConversation userConversation2 = CreateUserConversationObject(usernames[1], conversationId, 
+        
+        UserConversation userConversation2 = CreateUserConversationObject(
+            senderUsername: usernames[1], 
+            conversationId, 
+            recipientUsername: usernames[0],
             lastModifiedTime: unixTime);
         
         await Task.WhenAll(
@@ -130,12 +145,14 @@ public class ConversationService : IConversationService
             _userConversationStore.UpsertUserConversation(userConversation2));
     }
     
-    private UserConversation CreateUserConversationObject(string username, string conversationId, long lastModifiedTime)
+    private UserConversation CreateUserConversationObject(string senderUsername, string conversationId, 
+        string recipientUsername, long lastModifiedTime)
     {
         return new UserConversation
         {
-            Username = username,
+            Username = senderUsername,
             ConversationId = conversationId,
+            OtherParticipantUsername = recipientUsername,
             LastModifiedTime = lastModifiedTime
         };
     }
@@ -179,17 +196,19 @@ public class ConversationService : IConversationService
     {
         if (username1.CompareTo(username2) < 0)
         {
-            return username1 + Seperator + username2;
+            return username1 + Separator + username2;
         }
-        return username2 + Seperator + username1;
+        return username2 + Separator + username1;
     }
     
-    private async Task CreateUserConversation(string username, string conversationId, long lastModifiedTime)
+    private async Task CreateUserConversation(string senderUsername, string conversationId, 
+        string recipientUsername, long lastModifiedTime)
     {
         UserConversation userConversation = new()
         {
-            Username = username,
+            Username = senderUsername,
             ConversationId = conversationId,
+            OtherParticipantUsername = recipientUsername,
             LastModifiedTime = lastModifiedTime
         };
         await _userConversationStore.UpsertUserConversation(userConversation);
@@ -220,7 +239,7 @@ public class ConversationService : IConversationService
     
     private string[] SplitConversationId(string conversationId)
     {
-        return conversationId.Split(Seperator);
+        return conversationId.Split(Separator);
     }
     
     private string GetRecipientUsername(string senderUsername, string[] usernames)

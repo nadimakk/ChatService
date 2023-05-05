@@ -30,14 +30,14 @@ public class ConversationServiceTests : IClassFixture<WebApplicationFactory<Prog
         _recipientUsername
     };
 
-    private static SendMessageRequest _sendMessageRequest = new()
+    private static readonly SendMessageRequest _sendMessageRequest = new()
     {
         Id = Guid.NewGuid().ToString(),
         SenderUsername = _senderUsername,
         Text = Guid.NewGuid().ToString()
     };
     
-    private GetConversationsParameters _getConversationsParameters = new()
+    private readonly GetConversationsParameters _getConversationsParameters = new()
     {
         Limit = 1,
         Order = OrderBy.ASC,
@@ -51,7 +51,7 @@ public class ConversationServiceTests : IClassFixture<WebApplicationFactory<Prog
         FirstMessage = _sendMessageRequest
     };
     
-    private GetMessagesParameters _getMessagesParameters = new()
+    private readonly GetMessagesParameters _getMessagesParameters = new()
     {
         ConversationId = _conversationId,
         Limit = 1,
@@ -171,8 +171,8 @@ public class ConversationServiceTests : IClassFixture<WebApplicationFactory<Prog
         
         List<UserConversation> userConversations = new()
         {
-            CreateUserConversation(conversationIdUser1User2, username1),
-            CreateUserConversation(conversationIdUser1User3, username1),
+            CreateUserConversation(conversationIdUser1User2, senderUsername: username1, recipientUsername: username2),
+            CreateUserConversation(conversationIdUser1User3, senderUsername: username1, recipientUsername: username3)
         };
 
         string nextContinuationToken = Guid.NewGuid().ToString();
@@ -448,12 +448,14 @@ public class ConversationServiceTests : IClassFixture<WebApplicationFactory<Prog
         };
     }
     
-    private UserConversation CreateUserConversation(string conversationId, string username)
+    private UserConversation CreateUserConversation(string conversationId, string senderUsername, 
+        string recipientUsername)
     {
         return new UserConversation
         {
-            Username = username,
+            Username = senderUsername,
             ConversationId = conversationId,
+            OtherParticipantUsername = recipientUsername,
             LastModifiedTime = _unixTimeNow
         };
     }

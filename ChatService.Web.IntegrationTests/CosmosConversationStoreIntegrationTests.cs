@@ -12,8 +12,9 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     private readonly IUserConversationStore _userConversationStore;
     
     private static readonly string _username = Guid.NewGuid().ToString();
+    private static readonly string _otherParticipantUsername = Guid.NewGuid().ToString();
     
-    private GetConversationsParameters _parameters = new()
+    private readonly GetConversationsParameters _parameters = new()
     {
         Username = _username,
         Limit = 10,
@@ -28,7 +29,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     private static readonly UserConversation _userConversation2 = CreateUserConversation(lastModifiedTime: 200);
     private static readonly UserConversation _userConversation3 = CreateUserConversation(lastModifiedTime: 300);
     
-    private List<UserConversation> _userConversations = new() {
+    private readonly List<UserConversation> _userConversations = new() {
         _userConversation1, _userConversation2, _userConversation3, _userConversation
     };
     
@@ -65,19 +66,24 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     }
     
     [Theory]
-    [InlineData(null, "dummyConversationId", 100)]
-    [InlineData("", "dummyConversationId", 100)]
-    [InlineData(" ", "dummyConversationId", 100)]
-    [InlineData("foobar", null, 100)]
-    [InlineData("foobar", "", 100)]
-    [InlineData("foobar", " ", 100)]
-    [InlineData("foobar", "dummyConversationId", -100)]
-    public async Task CreateUserConversation_InvalidArguments(string username, string conversationId, long lastModifiedTime)
+    [InlineData(null, "dummyConversationId", "otherParticipantUsername", 100)]
+    [InlineData("", "dummyConversationId", "otherParticipantUsername", 100)]
+    [InlineData(" ", "dummyConversationId", "otherParticipantUsername", 100)]
+    [InlineData("senderUsername", null, "otherParticipantUsername", 100)]
+    [InlineData("senderUsername", "", "otherParticipantUsername", 100)]
+    [InlineData("senderUsername", " ", "otherParticipantUsername", 100)]
+    [InlineData("senderUsername", "dummyConversationId", null, 100)]
+    [InlineData("senderUsername", "dummyConversationId", "", 100)]
+    [InlineData("senderUsername", "dummyConversationId", " ", 100)]
+    [InlineData("senderUsername", "dummyConversationId", "otherParticipantUsername", -100)]
+    public async Task CreateUserConversation_InvalidArguments(string username, string conversationId,
+        string otherParticipantUsername, long lastModifiedTime)
     {
         UserConversation userConversation = new()
         {
             Username = username,
             ConversationId = conversationId,
+            OtherParticipantUsername = otherParticipantUsername,
             LastModifiedTime = lastModifiedTime
         };
         await Assert.ThrowsAsync<ArgumentException>(
@@ -88,9 +94,9 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
     [InlineData(null, "dummyConversationId")]
     [InlineData("", "dummyConversationId")]
     [InlineData(" ", "dummyConversationId")]
-    [InlineData("foobar", null)]
-    [InlineData("foobar", "")]
-    [InlineData("foobar", " ")]
+    [InlineData("senderUsername", null)]
+    [InlineData("senderUsername", "")]
+    [InlineData("senderUsername", " ")]
     public async Task GetUserConversation_InvalidArguments(string username, string conversationId)
     {
         await Assert.ThrowsAsync<ArgumentException>(
@@ -254,6 +260,7 @@ public class CosmosConversationStoreIntegrationTests : IClassFixture<WebApplicat
         {
             Username = _username,
             ConversationId = Guid.NewGuid().ToString(),
+            OtherParticipantUsername = _otherParticipantUsername,
             LastModifiedTime = lastModifiedTime
         };
     }
